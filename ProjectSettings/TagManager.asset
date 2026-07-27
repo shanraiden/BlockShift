@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!78 &1
+TagManager:
+  serializedVersion: 3
+  tags:
+  - BoxNormalM
+  - Fixed
+  - EndCap
+  - Wall
+  - Split
+  - Combiner
+  - HardGround
+  - CircleNormal
+  - MirrorPower
+  - Spikes
+  - TriangleNormal
+  - HexNorrmal
+  - switch
+  - Gate
+  layers:
+  - Default
+  - TransparentFX
+  - Ignore Raycast
+  - ComShift
+  - Water
+  - UI
+  - Ground
+  - lazer
+  - Reflection
+  - Enemy
+  - Switch
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  m_SortingLayers:
+  - name: Default
+    uniqueID: 0
+    locked: 0
+  - name: Foreground
+    uniqueID: 2028151753
+    locked: 0
+  m_RenderingLayers:
+  - Default
+  - GroundRend
+  m_MigratedRenderPipelines: []
