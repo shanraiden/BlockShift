@@ -14,7 +14,7 @@ public class GravityManager : MonoBehaviour
         {
             yield break;
         }
-
+         
 
         bool blockFellThisStep;
         int passCount = 0;
