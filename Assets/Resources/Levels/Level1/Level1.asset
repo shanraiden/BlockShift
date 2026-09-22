@@ -29,13 +29,13 @@ MonoBehaviour:
       blockColorID: 0
     - type: 0
       blockColorID: 0
-    - type: 2
-      blockColorID: 0
-    - type: 1
+    - type: 0
       blockColorID: 0
     - type: 0
       blockColorID: 0
-    - type: 3
+    - type: 0
       blockColorID: 0
-    - type: 4
+    - type: 0
+      blockColorID: 0
+    - type: 0
       blockColorID: 0
