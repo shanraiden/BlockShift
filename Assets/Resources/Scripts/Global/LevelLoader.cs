@@ -6,153 +6,140 @@ public class LevelLoader : MonoBehaviour
     [Header("Level Configuration")]
     [SerializeField] private LevelData currentLevel;
 
-
     [Header("Scene References")]
     [SerializeField] private MultiGridManager multiGridManager;
     [SerializeField] private CameraController cameraController;
+
     [Header("Gravity Manager")]
     [SerializeField] private GravityManager gravityManager;
 
     [Header("Prefabs")]
-    [SerializeField] private GameObject immovablePrefab;
-    [SerializeField] private GameObject movableStaticPrefab;
-    [SerializeField] private GameObject dynamicPrefab;
-    [SerializeField] private GameObject jointPrefab;
-    [SerializeField] private GameObject emptyCellPrefab; // Background grid tile prefab
+    [SerializeField] private GameObject emptyCellPrefab;    // Ground tile (Walkable background)
+    [SerializeField] private GameObject immovablePrefab;    // IMM
+    [SerializeField] private GameObject movableStaticPrefab;// STA
+    [SerializeField] private GameObject dynamicPrefab;      // DYN
+    [SerializeField] private GameObject jointPrefab;        // JNT
+
     private void Awake()
     {
-        // Automatically fetch MultiGridManager if attached to the same GameObject
         if (multiGridManager == null)
-        {
             multiGridManager = GetComponent<MultiGridManager>();
-        }
     }
 
     private IEnumerator Start()
     {
         if (currentLevel != null)
         {
-            // 1. Fully load level and instantiate all islands/blocks
             LoadLevel(currentLevel);
+            yield return null; // Wait 1 frame for Awake/Start on newly instantiated objects
 
-            // 2. Wait 1 frame so Awake/Start routines on spawned objects finalize
-            yield return null;
-
-            // 3. NOW run gravity on fully registered islands
             if (gravityManager != null && multiGridManager != null)
             {
                 yield return StartCoroutine(gravityManager.ApplyGravityRoutine(multiGridManager.GetActiveIslands()));
             }
         }
     }
+
     public void LoadLevel(LevelData levelToLoad)
     {
         currentLevel = levelToLoad;
 
-        // 1. Clear previous islands from MultiGridManager
         if (multiGridManager != null)
         {
             multiGridManager.ClearIslands();
         }
 
-        // Trigger immediate gravity check for mid-air dynamic blocks on level load
-        if (gravityManager != null && multiGridManager != null)
-        {
-            StartCoroutine(gravityManager.ApplyGravityRoutine(multiGridManager.GetActiveIslands()));
-        }
-        
-
-        // 2. Loop through each GridIslandData in LevelData
         foreach (var islandData in currentLevel.islands)
         {
-            // Create a parent GameObject for this island
+            // 1. Position the Island parent at its origin in world space
             GameObject islandGO = new GameObject($"Island_{islandData.islandID}");
+            islandGO.transform.position = new Vector3(islandData.originPosition.x, islandData.originPosition.y, 0f);
 
-            // Add and initialize the GridIsland component
             GridIsland islandScript = islandGO.AddComponent<GridIsland>();
+
+            GridCell[,] structGrid = new GridCell[islandData.width, islandData.height];
+            for (int x = 0; x < islandData.width; x++)
+            {
+                for (int y = 0; y < islandData.height; y++)
+                {
+                    structGrid[x, y] = islandData.GetCell(x, y);
+                }
+            }
+
             islandScript.InitializeIsland(
                 islandData.islandID,
                 islandData.width,
                 islandData.height,
-                islandData.originPosition
+                islandData.originPosition,
+                structGrid
             );
 
-            // 3. Register the island into MultiGridManager
             if (multiGridManager != null)
             {
                 multiGridManager.RegisterIsland(islandScript);
             }
 
-            // 4. Spawn blocks and register them inside this island
+            // 2. Spawn Tiles & Blocks RELATIVE to the Island parent
             for (int x = 0; x < islandData.width; x++)
             {
                 for (int y = 0; y < islandData.height; y++)
                 {
-                    GridCell cell = islandData.GetCell(x, y);
+                    GridCell cell = structGrid[x, y];
 
-                    Vector3 worldPos = new Vector3(
-                        islandData.originPosition.x + x,
-                        islandData.originPosition.y + y,
-                        0
-                    );
+                    // ONLY skip if the cell is explicitly set to Void (Empty)
+                    if (cell.type == TileType.Empty) continue;
 
-                    // 1. ALWAYS spawn the background tile prefab underneath
+                    // Local position within island container (+0.5f centers block inside 1x1 grid cell)
+                    Vector3 localPos = new Vector3(x , y , 0f);
+
+                    // 1. Always spawn background Ground tile for non-empty cells
                     if (emptyCellPrefab != null)
                     {
-                        // Position slightly behind blocks (z = 0.1f) to prevent z-fighting
-                        Vector3 bgPos = new Vector3(worldPos.x, worldPos.y, 0.1f);
-                        Instantiate(emptyCellPrefab, bgPos, Quaternion.identity, islandGO.transform);
+                        GameObject bgGO = Instantiate(emptyCellPrefab, islandGO.transform);
+                        bgGO.transform.localPosition = new Vector3(localPos.x, localPos.y, 0.1f);
+                        bgGO.transform.localRotation = Quaternion.identity;
+                        bgGO.transform.localScale = Vector3.one;
                     }
 
-                    GameObject blockGO = null;
-
-                    // 2. Spawn specific Block on top of the background if not empty
-                    switch (cell.type)
+                    // 2. Spawn Block if cell type is a Block (MovableStatic, Dynamic, Immovable, Joint, etc.)
+                    if (cell.type != TileType.Ground)
                     {
-                        case TileType.Immovable:
-                            if (immovablePrefab != null)
-                                blockGO = Instantiate(immovablePrefab, worldPos, Quaternion.identity, islandGO.transform);
-                            break;
+                        GameObject prefabToSpawn = GetPrefabForTileType(cell.type);
 
-                        case TileType.MovableStatic:
-                            if (movableStaticPrefab != null)
-                                blockGO = Instantiate(movableStaticPrefab, worldPos, Quaternion.identity, islandGO.transform);
-                            break;
+                        if (prefabToSpawn != null)
+                        {
+                            GameObject blockGO = Instantiate(prefabToSpawn, islandGO.transform);
+                            blockGO.transform.localPosition = localPos;
+                            blockGO.transform.localRotation = Quaternion.identity;
+                            blockGO.transform.localScale = Vector3.one;
 
-                        case TileType.Dynamic:
-                            if (dynamicPrefab != null)
-                                blockGO = Instantiate(dynamicPrefab, worldPos, Quaternion.identity, islandGO.transform);
-                            break;
-
-                        case TileType.Joint:
-                            if (jointPrefab != null)
-                                blockGO = Instantiate(jointPrefab, worldPos, Quaternion.identity, islandGO.transform);
-                            break;
-                    }
-
-                    // Register Block component if instantiated
-                    if (blockGO != null && blockGO.TryGetComponent<Block>(out Block blockScript))
-                    {
-                        blockScript.gridPosition = new Vector2Int(x, y);
-                        islandScript.RegisterBlock(blockScript, blockScript.gridPosition);
+                            if (blockGO.TryGetComponent<Block>(out Block blockScript))
+                            {
+                                blockScript.gridPosition = new Vector2Int(x, y);
+                                islandScript.RegisterBlock(blockScript, blockScript.gridPosition);
+                            }
+                        }
                     }
                 }
             }
         }
-
-        // 5. Adjust Camera to frame all active islands
-        if (cameraController != null)
-        {
-            //cameraController.AdjustCameraToMultiGrid(currentLevel.islands);
-        }
     }
 
-    /// <summary>
-    /// Reloads the currently assigned LevelData asset back to its default state.
-    /// </summary>
+    private GameObject GetPrefabForTileType(TileType type)
+    {
+        return type switch
+        {
+            TileType.Immovable => immovablePrefab,
+            TileType.MovableStatic => movableStaticPrefab,
+            TileType.Dynamic => dynamicPrefab,
+            TileType.Joint => jointPrefab,
+            _ => null // Ground or Empty spawns no extra block prefab
+        };
+    }
+
     public void ReloadCurrentLevel()
     {
-          if (currentLevel != null)
+        if (currentLevel != null)
         {
             StopAllCoroutines();
             StartCoroutine(RestartLevelRoutine());
@@ -161,13 +148,9 @@ public class LevelLoader : MonoBehaviour
 
     private IEnumerator RestartLevelRoutine()
     {
-        // 1. Re-instantiate all islands and blocks from the pristine LevelData asset
-         LoadLevel(currentLevel);
-
-        // 2. Wait 1 frame so grid arrays and object registrations finalize
+        LoadLevel(currentLevel);
         yield return null;
 
-        // 3. Resolve initial gravity for airborne blocks in default layout
         if (gravityManager != null && multiGridManager != null)
         {
             yield return StartCoroutine(gravityManager.ApplyGravityRoutine(multiGridManager.GetActiveIslands()));

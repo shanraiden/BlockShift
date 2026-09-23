@@ -74,8 +74,6 @@ public class LevelDataGizmoDrawer : MonoBehaviour
             TileType.MovableStatic => new Color(0.2f, 0.7f, 1f, 0.8f), // Soft Cyan
             TileType.Dynamic => new Color(1f, 0.6f, 0f, 0.8f),         // Orange
             TileType.Joint => new Color(0.8f, 0.2f, 0.8f, 0.8f),       // Magenta
-            TileType.GoalTile => new Color(0.2f, 0.9f, 0.2f, 0.8f),     // Green
-            TileType.HazardTile => new Color(0.9f, 0.2f, 0.2f, 0.8f),   // Red
             _ => Color.white
         };
     }

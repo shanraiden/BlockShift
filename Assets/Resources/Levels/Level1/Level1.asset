@@ -17,25 +17,207 @@ MonoBehaviour:
   parMoves: 15
   islands:
   - islandID: 1
-    originPosition: {x: -1, y: 2}
-    width: 3
-    height: 3
+    originPosition: {x: -3, y: -4}
+    width: 10
+    height: 10
     gridData:
-    - type: 0
+    - type: 1
       blockColorID: 0
-    - type: 0
+    - type: 1
       blockColorID: 0
-    - type: 0
+    - type: 1
       blockColorID: 0
-    - type: 0
+    - type: 1
       blockColorID: 0
-    - type: 0
+    - type: 1
       blockColorID: 0
-    - type: 0
+    - type: 1
       blockColorID: 0
-    - type: 0
+    - type: 1
       blockColorID: 0
-    - type: 0
+    - type: 1
       blockColorID: 0
-    - type: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 2
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 2
+      blockColorID: 0
+    - type: 5
+      blockColorID: 0
+    - type: 2
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 4
+      blockColorID: 0
+    - type: 2
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
       blockColorID: 0

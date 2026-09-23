@@ -1,15 +1,17 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public enum TileType
 {
-    Empty,              // No block present
-    Immovable,          // ImmovableBlock (Fixed Anchor)
-    MovableStatic,      // MovableStaticBlock (Floats, no gravity)
-    Dynamic,            // DynamicBlock (Falls with gravity)
-    Joint,              // JointBlock (Links with ImmovableBlocks)
-    GoalTile,           // Win condition tile
-    HazardTile          // Obstacle/Hazard
+    Empty,          // 0: Void / Out of bounds space (Nothing spawns)
+    Ground,         // 1: Walkable empty background tile (Spawns emptyCellPrefab)
+    Immovable,      // Fixed block
+    MovableStatic,  // Static block
+    Dynamic,        // Player block
+    Joint,          // Joint block
+    Ball,           // Win condition ball
+    Goal            // Win condition goal
 }
 
 [System.Serializable]
@@ -17,6 +19,15 @@ public struct GridCell
 {
     public TileType type;
     public int blockColorID;
+
+    public GridCell(TileType type = TileType.Empty, int blockColorID = 0)
+    {
+        this.type = type;
+        this.blockColorID = blockColorID;
+    }
+
+    // Helper property to check if this cell counts as playable grid space
+    public bool IsActive => type != TileType.Empty;
 }
 
 [System.Serializable]
@@ -26,24 +37,35 @@ public class GridIslandData
     public Vector2Int originPosition; // World offset
     public int width = 3;
     public int height = 3;
-    public GridCell[] gridData;
+    public List<GridCell> gridData;
 
     public GridCell GetCell(int x, int y)
     {
-        int index = y * width + x;
-        if (gridData != null && index >= 0 && index < gridData.Length)
-        {
+        int index = y * width + x; // Standard 2D to 1D mapping
+        if (index >= 0 && index < gridData.Count())
             return gridData[index];
-        }
         return new GridCell { type = TileType.Empty };
     }
 
     public void ValidateGridSize()
     {
-        int targetSize = width * height;
-        if (gridData == null || gridData.Length != targetSize)
+        int requiredSize = width * height;
+
+        if (gridData == null)
         {
-            System.Array.Resize(ref gridData, targetSize);
+            gridData = new List<GridCell>();
+        }
+
+        // Resize list if width/height changed
+        while (gridData.Count < requiredSize)
+        {
+            // Default new cells to Ground so they aren't skipped as Void
+            gridData.Add(new GridCell { type = TileType.Ground });
+        }
+
+        while (gridData.Count > requiredSize)
+        {
+            gridData.RemoveAt(gridData.Count - 1);
         }
     }
 }

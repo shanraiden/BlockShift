@@ -22,20 +22,22 @@ public class LevelDataEditor : Editor
         // --- PAINT PALETTE SELECTOR ---
         EditorGUILayout.BeginVertical(GUI.skin.box);
         EditorGUILayout.LabelField("Block Paint Tool", EditorStyles.boldLabel);
-        EditorGUILayout.LabelField("Select a block type below, then click any grid button to paint:", EditorStyles.miniLabel);
+        EditorGUILayout.LabelField("Select a block type below, then click any grid button to paint (Right-Click to Erase):", EditorStyles.miniLabel);
 
+        // Row 1: Void, Ground, Immovable
         EditorGUILayout.BeginHorizontal();
-        DrawPaletteButton("Empty", TileType.Empty, Color.gray);
+        DrawPaletteButton("Ground", TileType.Ground, new Color(0.6f, 0.6f, 0.6f));
         DrawPaletteButton("Immovable", TileType.Immovable, new Color(0.4f, 0.4f, 0.4f));
-        DrawPaletteButton("Static", TileType.MovableStatic, new Color(0.3f, 0.7f, 1f));
         EditorGUILayout.EndHorizontal();
 
+        // Row 2: Static, Dynamic, Joint
         EditorGUILayout.BeginHorizontal();
+        DrawPaletteButton("Static", TileType.MovableStatic, new Color(0.3f, 0.7f, 1f));
         DrawPaletteButton("Dynamic", TileType.Dynamic, new Color(1f, 0.6f, 0f));
         DrawPaletteButton("Joint", TileType.Joint, new Color(0.8f, 0.3f, 0.8f));
-        DrawPaletteButton("Goal", TileType.GoalTile, new Color(0.3f, 0.9f, 0.3f));
         EditorGUILayout.EndHorizontal();
 
+       
         EditorGUILayout.EndVertical();
 
         EditorGUILayout.Space(15);
@@ -102,13 +104,14 @@ public class LevelDataEditor : Editor
                     Color originalBg = GUI.backgroundColor;
                     GUI.backgroundColor = GetTileColor(cell.type);
 
-                    string buttonText = cell.type == TileType.Empty ? "•" : cell.type.ToString().Substring(0, 3);
+                    // Cell text abbreviation
+                    string buttonText = cell.type == TileType.Empty ? "•" : GetTileAbbreviation(cell.type);
 
                     if (GUILayout.Button(buttonText, GUILayout.Width(50), GUILayout.Height(35)))
                     {
                         Undo.RecordObject(level, "Paint Tile");
 
-                        // Right-click or shift-click resets to empty; left-click paints selected tool
+                        // Right-click sets cell to Empty (Void), Left-click paints selected tool
                         if (Event.current.button == 1)
                         {
                             cell.type = TileType.Empty;
@@ -146,7 +149,7 @@ public class LevelDataEditor : Editor
         // Highlight active painting tool
         if (selectedPaintTool == type)
         {
-            GUI.backgroundColor = color * 1.3f;
+            GUI.backgroundColor = color * 1.4f;
         }
         else
         {
@@ -165,14 +168,25 @@ public class LevelDataEditor : Editor
     {
         return type switch
         {
-            TileType.Empty => new Color(0.3f, 0.3f, 0.3f),
-            TileType.Immovable => new Color(0.5f, 0.5f, 0.5f),
+            TileType.Ground => new Color(0.6f, 0.6f, 0.6f),
+            TileType.Immovable => new Color(0.4f, 0.4f, 0.4f),
             TileType.MovableStatic => new Color(0.3f, 0.7f, 1f),
             TileType.Dynamic => new Color(1f, 0.6f, 0f),
             TileType.Joint => new Color(0.8f, 0.3f, 0.8f),
-            TileType.GoalTile => new Color(0.3f, 0.9f, 0.3f),
-            TileType.HazardTile => new Color(0.9f, 0.3f, 0.3f),
             _ => Color.white
+        };
+    }
+
+    private string GetTileAbbreviation(TileType type)
+    {
+        return type switch
+        {
+            TileType.Ground => "GND",
+            TileType.Immovable => "IMM",
+            TileType.MovableStatic => "STA",
+            TileType.Dynamic => "DYN",
+            TileType.Joint => "JNT",
+            _ => "•"
         };
     }
 }
