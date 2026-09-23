@@ -10,8 +10,7 @@ public enum TileType
     MovableStatic,  // Static block
     Dynamic,        // Player block
     Joint,          // Joint block
-    Ball,           // Win condition ball
-    Goal            // Win condition goal
+    GroundDeployer
 }
 
 [System.Serializable]

@@ -187,6 +187,20 @@ public class PlayerInput : MonoBehaviour
             return;
         }
 
+        // --- SPECIAL CASE: GROUND DEPLOYER BLOCK ---
+        if (block is GroundDeployerBlock deployerBlock)
+        {
+            if (deployerBlock.TryMoveAndDeploy(direction))
+            {
+                StartCoroutine(PostMoveRoutine());
+            }
+            else
+            {
+                block.PlayIllegalMoveAnimation(direction);
+            }
+            return;
+        }
+
         // --- STANDARD CASE: REGULAR BLOCK ---
         Vector2Int currentLocalPos = block.gridPosition;
         Vector2Int targetLocalPos = currentLocalPos + direction;

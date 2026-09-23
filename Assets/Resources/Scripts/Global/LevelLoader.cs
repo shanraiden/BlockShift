@@ -14,11 +14,12 @@ public class LevelLoader : MonoBehaviour
     [SerializeField] private GravityManager gravityManager;
 
     [Header("Prefabs")]
-    [SerializeField] private GameObject emptyCellPrefab;    // Ground tile (Walkable background)
-    [SerializeField] private GameObject immovablePrefab;    // IMM
-    [SerializeField] private GameObject movableStaticPrefab;// STA
-    [SerializeField] private GameObject dynamicPrefab;      // DYN
-    [SerializeField] private GameObject jointPrefab;        // JNT
+    [SerializeField] private GameObject emptyCellPrefab;              // Ground tile (Walkable background)
+    [SerializeField] private GameObject immovablePrefab;              // IMM
+    [SerializeField] private GameObject movableStaticPrefab;          // STA
+    [SerializeField] private GameObject dynamicPrefab;                // DYN
+    [SerializeField] private GameObject jointPrefab;                  // JNT
+    [SerializeField] private GameObject groundDeployerBlockPrefab;     // Deployer Block
 
     private void Awake()
     {
@@ -89,8 +90,8 @@ public class LevelLoader : MonoBehaviour
                     // ONLY skip if the cell is explicitly set to Void (Empty)
                     if (cell.type == TileType.Empty) continue;
 
-                    // Local position within island container (+0.5f centers block inside 1x1 grid cell)
-                    Vector3 localPos = new Vector3(x , y , 0f);
+                    // Local position within island container
+                    Vector3 localPos = new Vector3(x, y, 0f);
 
                     // 1. Always spawn background Ground tile for non-empty cells
                     if (emptyCellPrefab != null)
@@ -101,7 +102,7 @@ public class LevelLoader : MonoBehaviour
                         bgGO.transform.localScale = Vector3.one;
                     }
 
-                    // 2. Spawn Block if cell type is a Block (MovableStatic, Dynamic, Immovable, Joint, etc.)
+                    // 2. Spawn Block if cell type is a Block
                     if (cell.type != TileType.Ground)
                     {
                         GameObject prefabToSpawn = GetPrefabForTileType(cell.type);
@@ -117,6 +118,13 @@ public class LevelLoader : MonoBehaviour
                             {
                                 blockScript.gridPosition = new Vector2Int(x, y);
                                 islandScript.RegisterBlock(blockScript, blockScript.gridPosition);
+
+                                // Special Setup: Inject Ground Prefab and initial ammo if this is a GroundDeployerBlock
+                                if (blockScript is GroundDeployerBlock deployerBlock)
+                                {
+                                    int initialAmmo = 3; // Default ammo per deployer
+                                    deployerBlock.ConfigureDeployer(emptyCellPrefab, initialAmmo);
+                                }
                             }
                         }
                     }
@@ -133,6 +141,7 @@ public class LevelLoader : MonoBehaviour
             TileType.MovableStatic => movableStaticPrefab,
             TileType.Dynamic => dynamicPrefab,
             TileType.Joint => jointPrefab,
+            TileType.GroundDeployer => groundDeployerBlockPrefab,
             _ => null // Ground or Empty spawns no extra block prefab
         };
     }
