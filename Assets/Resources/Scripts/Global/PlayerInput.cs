@@ -1,24 +1,26 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem; // Required for the New Input System
+using UnityEngine.InputSystem;
 
 public class PlayerInput : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private Camera mainCamera;
+    [SerializeField] private MultiGridManager multiGridManager;
+    [SerializeField] private GravityManager gravityManager;
 
     [Header("Input Tuning")]
-    [SerializeField] private float minDragDistance = 0.2f; // Minimum drag in world units
+    [SerializeField] private float minDragDistance = 0.2f;
 
-    [SerializeField] private MultiGridManager multiGridManager;
     private Block selectedBlock;
+    private JointBlock activeJointBlock;
     private Vector3 startTouchWorldPos;
     private bool isDragging = false;
 
-    [SerializeField] private GravityManager gravityManager;
-
-    private bool isProcessingTurn = false; // Lock input while falling animations play
+    private bool isProcessingTurn = false;
     public bool IsProcessingTurn => isProcessingTurn;
+
     private void Awake()
     {
         if (mainCamera == null) mainCamera = Camera.main;
@@ -31,15 +33,15 @@ public class PlayerInput : MonoBehaviour
 
     private void HandleInput()
     {
-        // 1. Get current active pointer (Mouse, Touch, or Stylus)
+        if (isProcessingTurn) return;
+
         Pointer currentPointer = Pointer.current;
         if (currentPointer == null) return;
 
-        // 2. Read screen position and convert to world space
         Vector2 screenPos = currentPointer.position.ReadValue();
         Vector3 worldPos = mainCamera.ScreenToWorldPoint(new Vector3(screenPos.x, screenPos.y, -mainCamera.transform.position.z));
 
-        // 3. PRESS STARTED (Primary touch/click pressed this frame)
+        // 1. PRESS STARTED
         if (currentPointer.press.wasPressedThisFrame)
         {
             Vector2 mousePos2D = new Vector2(worldPos.x, worldPos.y);
@@ -49,38 +51,93 @@ public class PlayerInput : MonoBehaviour
             {
                 if (hit.collider.TryGetComponent<Block>(out Block block))
                 {
-                    // Ignore immovable blocks directly
-                    if (!block.CanPlayerMoveDirectly()) return;
+                    // Case A: DIRECT TAP ON AN IMMOVABLE BLOCK
+                    if (block is ImmovableBlock immovable)
+                    {
+                        List<JointBlock> adjacentJoints = immovable.GetAdjacentJointBlocks();
 
-                    selectedBlock = block;
-                    startTouchWorldPos = worldPos;
-                    isDragging = true;
+                        if (adjacentJoints.Count > 0)
+                        {
+                            // If switching to a new joint, deselect old pair
+                            JointBlock targetJoint = adjacentJoints[0];
+                            if (activeJointBlock != null && activeJointBlock != targetJoint)
+                            {
+                                DeselectCurrentPair();
+                            }
+
+                            activeJointBlock = targetJoint;
+                            // Toggle this immovable block in/out of activeJointBlock's multi-link list
+                            activeJointBlock.ToggleLinkImmovableBlock(immovable);
+
+                            selectedBlock = immovable;
+                            startTouchWorldPos = worldPos;
+                            isDragging = true;
+                            return;
+                        }
+                    }
+
+                    // Case B: DIRECT TAP/SWIPE ON A JOINT BLOCK
+                    if (block is JointBlock joint)
+                    {
+                        if (activeJointBlock != null && activeJointBlock != joint)
+                        {
+                            DeselectCurrentPair();
+                        }
+
+                        activeJointBlock = joint;
+                        selectedBlock = joint;
+                        startTouchWorldPos = worldPos;
+                        isDragging = true;
+                        return;
+                    }
+
+                    // Case C: STANDARD MOVABLE BLOCK
+                    if (block.CanPlayerMoveDirectly())
+                    {
+                        DeselectCurrentPair();
+
+                        selectedBlock = block;
+                        startTouchWorldPos = worldPos;
+                        isDragging = true;
+                    }
                 }
+            }
+            else
+            {
+                // Tapped empty space -> Deselect all
+                DeselectCurrentPair();
             }
         }
 
-        // 4. DRAG IN PROGRESS (Primary touch/click held down)
+        // 2. DRAG IN PROGRESS (Swipe Detection)
         if (currentPointer.press.isPressed && isDragging && selectedBlock != null)
         {
             Vector3 dragVector = worldPos - startTouchWorldPos;
 
-            // Trigger move once drag exceeds threshold
             if (dragVector.magnitude >= minDragDistance)
             {
                 Vector2Int direction = GetSwipeDirection(dragVector);
                 AttemptMove(selectedBlock, direction);
 
-                // Reset drag state so it only triggers once per swipe
                 isDragging = false;
                 selectedBlock = null;
             }
         }
 
-        // 5. PRESS RELEASED
+        // 3. PRESS RELEASED
         if (currentPointer.press.wasReleasedThisFrame)
         {
             isDragging = false;
             selectedBlock = null;
+        }
+    }
+
+    private void DeselectCurrentPair()
+    {
+        if (activeJointBlock != null)
+        {
+            activeJointBlock.DeselectAll();
+            activeJointBlock = null;
         }
     }
 
@@ -103,8 +160,34 @@ public class PlayerInput : MonoBehaviour
         GridIsland sourceIsland = block.currentIsland;
         if (sourceIsland == null) return;
 
-        // ... (Your JointBlock pair move checks) ...
+        // --- JOINT BLOCK OR LINKED IMMOVABLE BLOCK MOVE ---
+        if (block is JointBlock jointBlock)
+        {
+            if (jointBlock.TryMoveWithSelectedImmovables(direction))
+            {
+                StartCoroutine(PostMoveRoutine());
+            }
+            else
+            {
+                block.PlayIllegalMoveAnimation(direction);
+            }
+            return;
+        }
 
+        if (block is ImmovableBlock && activeJointBlock != null)
+        {
+            if (activeJointBlock.TryMoveWithSelectedImmovables(direction))
+            {
+                StartCoroutine(PostMoveRoutine());
+            }
+            else
+            {
+                block.PlayIllegalMoveAnimation(direction);
+            }
+            return;
+        }
+
+        // --- STANDARD CASE: REGULAR BLOCK ---
         Vector2Int currentLocalPos = block.gridPosition;
         Vector2Int targetLocalPos = currentLocalPos + direction;
 
@@ -115,7 +198,6 @@ public class PlayerInput : MonoBehaviour
                 sourceIsland.ExecuteMoveLocal(currentLocalPos, targetLocalPos);
                 block.MoveToGridPosition(targetLocalPos);
 
-                // Start gravity cascade after player move
                 StartCoroutine(PostMoveRoutine());
             }
             else
@@ -125,7 +207,7 @@ public class PlayerInput : MonoBehaviour
         }
         else
         {
-            // Inter-island gap logic
+            // Inter-island gap transfer logic
             Vector2Int currentWorldPos = sourceIsland.originPosition + currentLocalPos;
             Vector2Int targetWorldPos = currentWorldPos + direction;
 
@@ -147,18 +229,11 @@ public class PlayerInput : MonoBehaviour
     private IEnumerator PostMoveRoutine()
     {
         isProcessingTurn = true;
-
-        // Wait for the swipe animation to finish
         yield return new WaitForSeconds(0.2f);
 
-        // Run gravity routine
         if (gravityManager != null && multiGridManager != null)
         {
             yield return StartCoroutine(gravityManager.ApplyGravityRoutine(multiGridManager.GetActiveIslands()));
-        }
-        else
-        {
-            Debug.LogWarning("GravityManager or MultiGridManager reference missing on PlayerInput!");
         }
 
         isProcessingTurn = false;
