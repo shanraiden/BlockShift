@@ -23,7 +23,20 @@ public abstract class Block : MonoBehaviour
         if (spriteRenderer != null)
             defaultColor = spriteRenderer.color;
     }
+    public bool CanMoveTo(Vector2Int targetPos)
+    {
+        // Always query currentIsland dynamically!
+        if (currentIsland == null) return false;
 
+        // Check if the target position contains an existing block obstacle
+        Block obstacle = currentIsland.GetBlockAtLocalPos(targetPos);
+        if (obstacle != null && obstacle != this)
+        {
+            return false; // Cell occupied -> Prevent walking into/overlapping block!
+        }
+
+        return true;
+    }
     /// <summary>
     /// Can this block be selected and swiped directly by the player?
     /// </summary>
