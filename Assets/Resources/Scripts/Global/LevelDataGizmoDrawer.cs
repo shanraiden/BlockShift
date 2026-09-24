@@ -12,7 +12,6 @@ public class LevelDataGizmoDrawer : MonoBehaviour
 
     private void Start()
     {
-        showGizmos = false;
     }
 
     

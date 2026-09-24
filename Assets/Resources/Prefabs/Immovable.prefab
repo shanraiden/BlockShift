@@ -12,9 +12,9 @@ GameObject:
   - component: {fileID: 1244469223078592452}
   - component: {fileID: 564081558074689106}
   - component: {fileID: -3847883799918104372}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: Immovable
-  m_TagString: Untagged
+  m_TagString: BoxNormalM
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -79,9 +79,9 @@ SpriteRenderer:
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
   m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingLayerID: 2028151753
+  m_SortingLayer: 1
+  m_SortingOrder: 99
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 74605f6488e137d4eab9068e46ce1a5b, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -156,7 +156,6 @@ MonoBehaviour:
   spriteRenderer: {fileID: 0}
   defaultColor: {r: 1, g: 1, b: 1, a: 1}
   illegalColor: {r: 1, g: 0, b: 0, a: 1}
-  spriteRenderer: {fileID: 0}
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   highlightColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   blinkColor: {r: 0, g: 1, b: 1, a: 1}

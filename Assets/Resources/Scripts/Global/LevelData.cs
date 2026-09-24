@@ -32,10 +32,14 @@ public struct GridCell
 [System.Serializable]
 public class GridIslandData
 {
-    public int islandID = 1;
-    public Vector2Int originPosition; // World offset
+    public int islandID;
+    public Vector2Int originPosition;
     public int width = 3;
     public int height = 3;
+
+    public Vector3 islandScale = Vector3.one; // Controls entire island world transform scale
+    public Vector2 boxScale = Vector2.one;    // Controls cell grid dimensioning
+
     public List<GridCell> gridData;
 
     public GridCell GetCell(int x, int y)

@@ -16,39 +16,46 @@ MonoBehaviour:
   levelName: New Level
   parMoves: 15
   islands:
-  - islandID: 1
-    originPosition: {x: -1, y: -4}
-    width: 3
-    height: 3
-    gridData:
-    - type: 1
-      blockColorID: 0
-    - type: 1
-      blockColorID: 0
-    - type: 1
-      blockColorID: 0
-    - type: 1
-      blockColorID: 0
-    - type: 1
-      blockColorID: 0
-    - type: 1
-      blockColorID: 0
-    - type: 6
-      blockColorID: 0
-    - type: 5
-      blockColorID: 0
-    - type: 2
-      blockColorID: 0
   - islandID: 2
-    originPosition: {x: -1, y: 1}
-    width: 3
-    height: 3
+    originPosition: {x: 0, y: -6}
+    width: 19
+    height: 7
+    islandScale: {x: 1, y: 1, z: 1}
+    boxScale: {x: 1, y: 1}
     gridData:
     - type: 1
       blockColorID: 0
     - type: 5
       blockColorID: 0
     - type: 2
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
       blockColorID: 0
     - type: 1
       blockColorID: 0
@@ -57,6 +64,226 @@ MonoBehaviour:
     - type: 1
       blockColorID: 0
     - type: 3
+      blockColorID: 0
+    - type: 2
+      blockColorID: 0
+    - type: 2
+      blockColorID: 0
+    - type: 2
+      blockColorID: 0
+    - type: 2
+      blockColorID: 0
+    - type: 2
+      blockColorID: 0
+    - type: 2
+      blockColorID: 0
+    - type: 2
+      blockColorID: 0
+    - type: 2
+      blockColorID: 0
+    - type: 2
+      blockColorID: 0
+    - type: 2
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 3
+      blockColorID: 0
+    - type: 0
+      blockColorID: 0
+    - type: 3
+      blockColorID: 0
+    - type: 3
+      blockColorID: 0
+    - type: 2
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 3
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 3
+      blockColorID: 0
+    - type: 3
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 3
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 3
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 1
       blockColorID: 0
     - type: 1
       blockColorID: 0

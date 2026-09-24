@@ -5,7 +5,6 @@ using UnityEngine;
 public class ImmovableBlock : Block
 {
     [Header("Visual Feedback References")]
-    [SerializeField] private SpriteRenderer spriteRenderer;
     [SerializeField] private Color normalColor = Color.white;
     [SerializeField] private Color highlightColor = Color.yellow;
     [SerializeField] private Color blinkColor = Color.cyan;
@@ -15,7 +14,7 @@ public class ImmovableBlock : Block
     public override bool CanPlayerMoveDirectly() => false;
     public override bool IsAffectedByGravity() => false;
 
-    private void Awake()
+    new private void Awake()
     {
         if (spriteRenderer == null) spriteRenderer = GetComponent<SpriteRenderer>();
         if (spriteRenderer != null) normalColor = spriteRenderer.color;

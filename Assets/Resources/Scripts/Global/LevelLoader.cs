@@ -25,6 +25,7 @@ public class LevelLoader : MonoBehaviour
     {
         if (multiGridManager == null)
             multiGridManager = GetComponent<MultiGridManager>();
+        
     }
 
     private IEnumerator Start()

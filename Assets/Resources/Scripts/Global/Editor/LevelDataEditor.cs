@@ -38,7 +38,6 @@ public class LevelDataEditor : Editor
         DrawPaletteButton("Joint", TileType.Joint, new Color(0.8f, 0.3f, 0.8f));
         EditorGUILayout.EndHorizontal();
 
-       
         EditorGUILayout.EndVertical();
 
         EditorGUILayout.Space(15);
@@ -54,7 +53,9 @@ public class LevelDataEditor : Editor
                 islandID = newID,
                 width = 3,
                 height = 3,
-                originPosition = new Vector2Int((newID - 1) * 5, 0)
+                originPosition = new Vector2Int((newID - 1) * 5, 0),
+                islandScale = Vector3.one, // Default scale
+                boxScale = Vector2.one       // Default individual cell scale
             });
             EditorUtility.SetDirty(level);
         }
@@ -88,10 +89,18 @@ public class LevelDataEditor : Editor
             island.width = Mathf.Max(1, EditorGUILayout.IntField("Width", island.width));
             island.height = Mathf.Max(1, EditorGUILayout.IntField("Height", island.height));
 
+            // --- SCALE CONTROLS ---
+            island.islandScale = EditorGUILayout.Vector3Field("Island Scale (World)", island.islandScale);
+            island.boxScale = EditorGUILayout.Vector2Field("Box/Tile Scale", island.boxScale);
+
             island.ValidateGridSize();
 
             EditorGUILayout.Space(5);
             EditorGUILayout.LabelField("Grid View (Top-Down)", EditorStyles.miniBoldLabel);
+
+            // Calculate UI dimensions dynamically based on boxScale
+            float cellWidth = Mathf.Max(20f, 50f * island.boxScale.x);
+            float cellHeight = Mathf.Max(20f, 35f * island.boxScale.y);
 
             // Draw Interactive Grid Buttons
             for (int y = island.height - 1; y >= 0; y--)
@@ -108,7 +117,7 @@ public class LevelDataEditor : Editor
                     // Cell text abbreviation
                     string buttonText = cell.type == TileType.Empty ? "•" : GetTileAbbreviation(cell.type);
 
-                    if (GUILayout.Button(buttonText, GUILayout.Width(50), GUILayout.Height(35)))
+                    if (GUILayout.Button(buttonText, GUILayout.Width(cellWidth), GUILayout.Height(cellHeight)))
                     {
                         Undo.RecordObject(level, "Paint Tile");
 
