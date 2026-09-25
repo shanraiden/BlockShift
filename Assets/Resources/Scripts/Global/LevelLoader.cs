@@ -21,6 +21,8 @@ public class LevelLoader : MonoBehaviour
     [SerializeField] private GameObject jointPrefab;                  // JNT
     [SerializeField] private GameObject groundDeployerBlockPrefab;     // Deployer Block
 
+    [Header("Deployer Initial Ammo")]
+    [SerializeField] private int initialDeployerAmmo = 3; // Default ammo for deployer blocks
     private void Awake()
     {
         if (multiGridManager == null)
@@ -123,8 +125,8 @@ public class LevelLoader : MonoBehaviour
                                 // Special Setup: Inject Ground Prefab and initial ammo if this is a GroundDeployerBlock
                                 if (blockScript is GroundDeployerBlock deployerBlock)
                                 {
-                                    int initialAmmo = 3; // Default ammo per deployer
-                                    deployerBlock.ConfigureDeployer(emptyCellPrefab, initialAmmo);
+                                    
+                                    deployerBlock.ConfigureDeployer(emptyCellPrefab, initialDeployerAmmo);
                                 }
                             }
                         }

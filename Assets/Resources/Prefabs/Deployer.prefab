@@ -156,5 +156,5 @@ MonoBehaviour:
   spriteRenderer: {fileID: 0}
   defaultColor: {r: 1, g: 1, b: 1, a: 1}
   illegalColor: {r: 1, g: 0, b: 0, a: 1}
-  deployAmmo: 3
+  deployAmmo: 10
   groundBlockPrefab: {fileID: 0}

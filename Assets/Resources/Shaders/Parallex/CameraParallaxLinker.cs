@@ -11,6 +11,16 @@ public class CameraParallaxLinker : MonoBehaviour
 
     private void Awake()
     {
+        Initialize();
+    }
+
+    private void OnEnable()
+    {
+        Initialize();
+    }
+
+    private void Initialize()
+    {
         if (targetCamera == null && Camera.main != null)
         {
             targetCamera = Camera.main.transform;
@@ -21,17 +31,27 @@ public class CameraParallaxLinker : MonoBehaviour
             spriteRenderer = GetComponent<Renderer>();
         }
 
-        _propertyBlock = new MaterialPropertyBlock();
+        if (_propertyBlock == null)
+        {
+            _propertyBlock = new MaterialPropertyBlock();
+        }
     }
 
     private void LateUpdate()
     {
+        // Guard against destroyed components or unassigned cameras
         if (targetCamera == null || spriteRenderer == null) return;
+
+        // Lazy initialization check for Edit Mode / runtime instantiation
+        if (_propertyBlock == null)
+        {
+            _propertyBlock = new MaterialPropertyBlock();
+        }
 
         // Fetch camera world X coordinate
         float camX = targetCamera.position.x;
 
-        // Efficient property block update (no material instance allocations)
+        // Safely update material property block without allocations
         spriteRenderer.GetPropertyBlock(_propertyBlock);
         _propertyBlock.SetFloat(CamPosXID, camX);
         spriteRenderer.SetPropertyBlock(_propertyBlock);

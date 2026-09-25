@@ -249,69 +249,149 @@ public class GridIsland : MonoBehaviour
     {
         if (otherIsland == null || otherIsland == this) return;
 
-        // 1. Collect all blocks on Island 2
-        Block[] blocksToTransfer = otherIsland.GetComponentsInChildren<Block>();
+        // 1. Determine smallest grid scale and set it first
+        float thisScaleMag = this.boxScale.sqrMagnitude;
+        float otherScaleMag = otherIsland.boxScale.sqrMagnitude;
 
-        // Store world positions before making any changes
-        List<Vector3> worldPositions = new List<Vector3>();
-        foreach (Block b in blocksToTransfer)
+        Vector2 targetScale = this.boxScale;
+        if (otherScaleMag < thisScaleMag)
         {
-            if (b != null) worldPositions.Add(b.transform.position);
+            targetScale = otherIsland.boxScale;
         }
 
-        // 2. Pre-expand receiving island so all incoming block positions fit in the array
-        for (int i = 0; i < worldPositions.Count; i++)
+        if (this.boxScale != targetScale)
         {
-            Vector2Int targetLocalPos = WorldToGridPosition(worldPositions[i]);
-            ExpandGridIfNeeded(targetLocalPos);
+            //SetGridScale(targetScale);
         }
 
-        // 3. Transfer each Block safely
-        for (int i = 0; i < blocksToTransfer.Length; i++)
+        // 2. Collect cell types and world positions
+        List<KeyValuePair<Vector3, TileType>> cellsToTransfer = new List<KeyValuePair<Vector3, TileType>>();
+        if (otherIsland.cellGrid != null)
         {
-            Block block = blocksToTransfer[i];
-            if (block == null) continue;
-
-            // Remove from old island
-            otherIsland.RemoveBlock(block.gridPosition);
-
-            // Calculate exact target coordinate on expanded Island 1
-            Vector2Int newGridPos = WorldToGridPosition(worldPositions[i]);
-
-            // Reparent to Island 1
-            block.transform.SetParent(this.transform);
-            block.currentIsland = this;
-            block.gridPosition = newGridPos;
-
-            // Register in Island 1's grid
-            RegisterBlock(block, newGridPos);
-
-            // Snap block to local position
-            block.transform.localPosition = GridToLocalPosition(newGridPos, block.transform.localPosition.z);
-        }
-
-        // 4. Transfer non-Block visual components (like Ground Tiles)
-        Transform[] allChildren = otherIsland.GetComponentsInChildren<Transform>();
-        foreach (Transform child in allChildren)
-        {
-            if (child != null && child != otherIsland.transform && child.GetComponent<Block>() == null && child.parent == otherIsland.transform)
+            for (int x = 0; x < otherIsland.width; x++)
             {
-                Vector3 tileWorldPos = child.position;
-                child.SetParent(this.transform);
-
-                Vector2Int tileGridPos = WorldToGridPosition(tileWorldPos);
-                child.localPosition = GridToLocalPosition(tileGridPos, 0.1f);
-
-                // Set ground cell active in cellGrid
-                if (tileGridPos.x >= 0 && tileGridPos.x < width && tileGridPos.y >= 0 && tileGridPos.y < height)
+                for (int y = 0; y < otherIsland.height; y++)
                 {
-                    cellGrid[tileGridPos.x, tileGridPos.y] = new GridCell(TileType.Ground);
+                    GridCell cell = otherIsland.cellGrid[x, y];
+                    if (cell.type != TileType.Empty)
+                    {
+                        Vector3 cellWorldPos = otherIsland.GridToWorldPosition(new Vector2Int(x, y));
+                        cellsToTransfer.Add(new KeyValuePair<Vector3, TileType>(cellWorldPos, cell.type));
+                    }
                 }
             }
         }
 
-        // 5. Safe Destruction
+        // Collect blocks
+        Block[] blocksToTransfer = otherIsland.GetComponentsInChildren<Block>();
+        List<KeyValuePair<Block, Vector3>> blocksWithWorldPos = new List<KeyValuePair<Block, Vector3>>();
+        foreach (Block b in blocksToTransfer)
+        {
+            if (b != null)
+            {
+                blocksWithWorldPos.Add(new KeyValuePair<Block, Vector3>(b, b.transform.position));
+            }
+        }
+
+        // Collect non-block visual ground tile transforms from otherIsland
+        List<Transform> visualTilesToTransfer = new List<Transform>();
+        foreach (Transform child in otherIsland.transform)
+        {
+            if (child.GetComponent<Block>() == null)
+            {
+                visualTilesToTransfer.Add(child);
+            }
+        }
+
+        // 3. PRE-EXPAND PHASE: Calculate required grid bounds
+        Vector2Int minGridPos = new Vector2Int(0, 0);
+        Vector2Int maxGridPos = new Vector2Int(width - 1, height - 1);
+
+        foreach (var kvp in cellsToTransfer)
+        {
+            Vector2Int gridPos = WorldToGridPosition(kvp.Key);
+            minGridPos.x = Mathf.Min(minGridPos.x, gridPos.x);
+            minGridPos.y = Mathf.Min(minGridPos.y, gridPos.y);
+            maxGridPos.x = Mathf.Max(maxGridPos.x, gridPos.x);
+            maxGridPos.y = Mathf.Max(maxGridPos.y, gridPos.y);
+        }
+
+        // Expand grid bounds in a single pass
+        if (minGridPos.x < 0 || minGridPos.y < 0)
+        {
+            ExpandGridIfNeeded(minGridPos);
+        }
+        if (maxGridPos.x >= width || maxGridPos.y >= height)
+        {
+            ExpandGridIfNeeded(maxGridPos);
+        }
+
+        // 4. REGISTER CELL DATA
+        foreach (var kvp in cellsToTransfer)
+        {
+            Vector2Int targetGridPos = WorldToGridPosition(kvp.Key);
+            SetTileTypeAt(targetGridPos, kvp.Value);
+        }
+
+        // 5. TRANSFER & REPARENT VISUAL GROUND TILES
+        foreach (Transform tileTransform in visualTilesToTransfer)
+        {
+            Vector3 tileWorldPos = tileTransform.position;
+            tileTransform.SetParent(this.transform, true);
+
+            Vector2Int tileGridPos = WorldToGridPosition(tileWorldPos);
+            tileTransform.localPosition = GridToLocalPosition(tileGridPos, 0.1f);
+            tileTransform.localScale = new Vector3(boxScale.x, boxScale.y, 1f);
+        }
+
+        // 6. TRANSFER & REPARENT BLOCKS
+        foreach (var kvp in blocksWithWorldPos)
+        {
+            Block block = kvp.Key;
+            Vector3 worldPos = kvp.Value;
+
+            otherIsland.RemoveBlock(block.gridPosition);
+
+            Vector2Int newMainGridPos = WorldToGridPosition(worldPos);
+
+            block.transform.SetParent(this.transform, true);
+            block.currentIsland = this;
+            block.gridPosition = newMainGridPos;
+
+            SetTileTypeAt(newMainGridPos, TileType.Ground);
+            RegisterBlock(block, newMainGridPos);
+
+            block.transform.localPosition = GridToLocalPosition(newMainGridPos, block.transform.localPosition.z);
+        }
+
+        // 7. Clean up merged island container
         Destroy(otherIsland.gameObject);
+    }
+    /// <summary>
+    /// Sets the tile type at a specific local grid coordinate.
+    /// Expands grid if required and sets cell active state.
+    /// </summary>
+    public void SetTileTypeAt(Vector2Int gridPos, TileType type)
+    {
+        if (!IsValidLocalPos(gridPos))
+        {
+            ExpandGridIfNeeded(gridPos);
+        }
+
+        if (gridPos.x >= 0 && gridPos.x < width && gridPos.y >= 0 && gridPos.y < height)
+        {
+            cellGrid[gridPos.x, gridPos.y].type = type;
+        }
+    }
+
+    /// <summary>
+    /// Converts local grid coordinates to exact World Space coordinates,
+    /// accounting for island position, rotation, and boxScale.
+    /// </summary>
+    public Vector3 GridToWorldPosition(Vector2Int gridPos, float zOffset = 0f)
+    {
+        Vector3 localPos = GridToLocalPosition(gridPos, zOffset);
+        return transform.TransformPoint(localPos);
     }
     private bool VerifyConnectivity()
     {

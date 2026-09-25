@@ -1056,7 +1056,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0ccb4814c23dc7469e5b0e6c7c3c85a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LevelLoader
-  currentLevel: {fileID: 11400000, guid: 0840571385de7d44688ca5c9f5bcf233, type: 2}
+  currentLevel: {fileID: 11400000, guid: cf137f3b0d1ee9f4b9f032f17bacc0cc, type: 2}
   multiGridManager: {fileID: 1220535737}
   cameraController: {fileID: 0}
   gravityManager: {fileID: 1220535739}
@@ -1121,7 +1121,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e365172d371e6a646973119d1d9c5ec8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LevelDataGizmoDrawer
-  levelData: {fileID: 11400000, guid: 0840571385de7d44688ca5c9f5bcf233, type: 2}
+  levelData: {fileID: 11400000, guid: cf137f3b0d1ee9f4b9f032f17bacc0cc, type: 2}
   showGizmos: 1
   showTileLabels: 1
 --- !u!114 &1220535739

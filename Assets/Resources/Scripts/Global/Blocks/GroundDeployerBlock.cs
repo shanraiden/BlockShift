@@ -3,10 +3,9 @@
 public class GroundDeployerBlock : Block
 {
     [Header("Deployer Settings")]
-    [SerializeField] private int deployAmmo = 3;
+    private int deployAmmo;
     [SerializeField] private GameObject groundBlockPrefab;
 
-    public int RemainingAmmo => deployAmmo;
 
     public override bool CanPlayerMoveDirectly() => true;
     public override bool IsAffectedByGravity() => false;
@@ -51,7 +50,9 @@ public class GroundDeployerBlock : Block
         // 7. Deploy Ground Tile if moving into empty space
         if (!targetHasGround)
         {
+          
             deployAmmo--;
+            print(deployAmmo);
             if (groundBlockPrefab != null)
             {
                 targetIsland.DeployGroundTileAt(targetPos, groundBlockPrefab);
