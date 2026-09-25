@@ -1,0 +1,303 @@
+@startuml BlockShift_Architecture
+!theme plain
+
+title BlockShift - Complete Architecture Diagram
+
+package "Core Block System" {
+	abstract class Block {
+		#gridPosition: Vector2Int
+		#currentIsland: GridIsland
+		#spriteRenderer: SpriteRenderer
+		#defaultColor: Color
+		#illegalColor: Color
+		--
+		+CanMoveTo(targetPos): bool
+		+{abstract} CanPlayerMoveDirectly(): bool
+		+{abstract} IsAffectedByGravity(): bool
+		+MoveToGridPosition(pos)
+		+AnimateMovement(duration)
+		#Awake()
+	}
+
+	class DynamicBlock extends Block {
+		-fallStartPos: Vector2Int
+		--
+		+CanPlayerMoveDirectly(): bool
+		+IsAffectedByGravity(): bool
+		+TryMove(direction): bool
+	}
+
+	class MovableStaticBlock extends Block {
+		--
+		+CanPlayerMoveDirectly(): bool
+		+IsAffectedByGravity(): bool
+		+TryMove(direction): bool
+	}
+
+	class ImmovableBlock extends Block {
+		--
+		+CanPlayerMoveDirectly(): bool
+		+IsAffectedByGravity(): bool
+	}
+
+	class JointBlock extends Block {
+		-linkedBlocks: List<Block>
+		--
+		+CanPlayerMoveDirectly(): bool
+		+IsAffectedByGravity(): bool
+		+LinkBlock(block)
+	}
+
+	class GroundDeployerBlock extends Block {
+		-deployAmmo: int
+		-groundBlockPrefab: GameObject
+		--
+		+RemainingAmmo: int
+		+CanPlayerMoveDirectly(): bool
+		+IsAffectedByGravity(): bool
+		+TryMoveAndDeploy(direction): bool
+		+ConfigureDeployer(prefab, ammo)
+		-CheckAndBridgeAdjacentIslands()
+	}
+}
+
+package "Grid System" {
+	enum TileType {
+		Empty
+		Ground
+		Immovable
+		MovableStatic
+		Dynamic
+		Joint
+		GroundDeployer
+	}
+
+	struct GridCell {
+		type: TileType
+		blockColorID: int
+	}
+
+	class GridIsland {
+		-islandID: int
+		-width: int
+		-height: int
+		-originPosition: Vector2Int
+		-cellGrid[,]: GridCell
+		-localGrid[,]: Block
+		-islandBlocks: List<Block>
+		-scaleFactorX: int
+		-scaleFactorY: int
+		--
+		+InitializeIsland(id, w, h, origin, cells)
+		+GridToLocalPosition(gridPos, z): Vector3
+		+WorldToGridPosition(worldPos): Vector2Int
+		+GetBlockAtLocalPos(pos): Block
+		+RegisterBlock(block, pos)
+		+RemoveBlock(pos)
+		+ExpandGridIfNeeded(pos)
+		+DeployGroundTileAt(pos, prefab)
+		+MergeOtherIsland(other)
+		+IsValidLocalPos(pos): bool
+		+ContainsWorldPos(pos): bool
+		+CanRemoveBlock(pos): bool
+	}
+
+	class MultiGridManager {
+		-activeIslands: List<GridIsland>
+		--
+		+RegisterIsland(island)
+		+GetActiveIslands(): List<GridIsland>
+		+GetIslandAtWorldPos(pos): GridIsland
+		+TryTransferBlockBetweenIslands(block, src, pos): bool
+		+ClearIslands()
+	}
+
+	GridIsland "*" -- "1" TileType
+	GridIsland "*" -- "W×H" GridCell
+	GridIsland "*" -- "*" Block
+	MultiGridManager "1" -- "*" GridIsland
+}
+
+package "Physics System" {
+	class GravityManager {
+		-fallStepDuration: float
+		-fallEase: Ease
+		--
+		+ApplyGravityRoutine(islands): IEnumerator
+		-FindSupportBelow(block): Block
+		-CalculateFallDistance(block): int
+	}
+
+	GravityManager --> GridIsland
+	GravityManager --> Block
+}
+
+package "Input & Control System" {
+	class PlayerInput {
+		-currentBlock: Block
+		-swipeStart: Vector2
+		-swipeEnd: Vector2
+		--
+		+DetectSwipe(): Vector2Int
+		+TrySelectBlock(worldPos): bool
+		+ValidateMoveDirection(block, dir): bool
+		-GetInputDirection(): Vector2Int
+	}
+
+	class PlayerController {
+		-moveSpeed: float
+		-pathWaypoints: List<Transform>
+		-waypointThreshold: float
+		-hoverAmplitude: float
+		-hoverFrequency: float
+		-rb: Rigidbody2D
+		-spriteRenderer: SpriteRenderer
+		-animator: Animator
+		--
+		+MoveTo(target)
+		+FollowPath()
+		+HandleObstacles()
+		+UpdateAnimation()
+		+PlayHoverIdle()
+		-DetectObstaclesAhead()
+	}
+
+	PlayerInput --> Block
+	PlayerController --> PlayerInput
+}
+
+package "Level System" {
+	struct GridIslandData {
+		islandID: int
+		originPosition: Vector2Int
+		width: int
+		height: int
+		scaleFactorX: int
+		scaleFactorY: int
+		gridData: List<GridCell>
+		--
+		+GetCell(x, y): GridCell
+		+ValidateGridSize()
+	}
+
+	class LevelData {
+		islands: List<GridIslandData>
+		emptyCellPrefab: GameObject
+		blockConfigs: Dictionary<TileType, BlockConfig>
+		--
+		+GetIsland(id): GridIslandData
+		+AddIsland()
+		+RemoveIsland()
+	}
+
+	class LevelLoader {
+		-multiGridManager: MultiGridManager
+		-gravityManager: GravityManager
+		--
+		+LoadLevel(levelData): void
+		-InstantiateIslands(data)
+		-InstantiateBlock(pos, type)
+		-LinkReferences()
+	}
+
+	class LevelReset {
+		-originalLevelData: LevelData
+		-currentLevel: LevelData
+		--
+		+ResetLevel(): void
+		+SaveCheckpoint()
+		+LoadCheckpoint()
+	}
+
+	class PlayerGoal {
+		-winCondition: GoalType
+		-targetBlock: Block
+		-targetPosition: Vector2Int
+		--
+		+CheckWinCondition(): bool
+		+OnLevelComplete()
+	}
+
+	LevelData "1" -- "*" GridIslandData
+	LevelLoader --> LevelData
+	LevelLoader --> GridIsland
+	LevelReset --> LevelData
+	PlayerGoal --> Block
+}
+
+package "Camera System" {
+	class CameraConfig {
+		followSpeed: float
+		zDistance: float
+		boundsMin: Vector2
+		boundsMax: Vector2
+	}
+
+	class CameraController {
+		-mainCamera: Camera
+		-target: Transform
+		-config: CameraConfig
+		--
+		+FollowTarget(target)
+		+SetCameraBounds(min, max)
+		+UpdatePosition()
+		+ApplyScreenShake(intensity, duration)
+	}
+
+	class ParallaxController {
+		-parallaxLayers: List<SpriteRenderer>
+		-parallaxFactors: List<float>
+		--
+		+CreateLayers(imageCount)
+		+ScrollBackground(offset)
+		+AdjustDepth(depth)
+	}
+
+	CameraController --> CameraConfig
+	CameraController --> ParallaxController
+}
+
+package "Utilities" {
+	class DynamicFpsManager {
+		-targetFps: int
+		--
+		+SetDynamicFps(fpsValue)
+		+OptimizePerformance()
+	}
+
+	class LevelDataGizmoDrawer {
+		-drawGridBounds: bool
+		-drawIslandOrigins: bool
+		--
+		+OnDrawGizmos()
+		-DrawGridGizmo(island)
+	}
+}
+
+note right of Block
+  Abstract base class for all game objects
+  Provides movement and animation framework
+  Each subclass defines specific behavior
+end note
+
+note right of GridIsland
+  Represents a single floating island
+  Manages local grid and block references
+  Handles coordinate transformations
+  Can merge with other islands
+end note
+
+note right of GravityManager
+  Applies physics-like gravity
+  Makes blocks fall until supported
+  Uses coroutines for smooth animation
+end note
+
+note bottom of LevelLoader
+  Constructs entire level from LevelData
+  Instantiates GameObjects
+  Wires up references
+  Initializes all systems
+end note
+
+@enduml

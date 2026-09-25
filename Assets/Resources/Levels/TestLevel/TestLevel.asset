@@ -30,7 +30,7 @@ MonoBehaviour:
     width: 2
     height: 3
     scaleFactorX: 1
-    scaleFactorY: 2
+    scaleFactorY: 1
     gridData:
     - type: 1
       blockColorID: 0

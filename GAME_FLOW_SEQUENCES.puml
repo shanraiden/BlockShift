@@ -1,0 +1,341 @@
+@startuml BlockShift_GameFlow
+
+title BlockShift - Complete Game Flow Sequence Diagrams
+
+' ============================================
+' DIAGRAM 1: Level Initialization
+' ============================================
+autonumber
+
+participant "UnityScene" as Scene
+participant "LevelLoader" as Loader
+participant "GridIsland" as Island
+participant "Block" as Block
+participant "MultiGridManager" as Manager
+participant "GravityManager" as Gravity
+
+== Level Initialization ==
+
+Scene -> Loader: LoadLevel(levelData)
+Loader -> Manager: Create MultiGridManager
+Loader -> Gravity: Create GravityManager
+
+loop For each island in levelData
+	Loader -> Island: Instantiate GridIsland
+	Loader -> Island: InitializeIsland(w, h, origin, cells)
+	Island -> Island: Create cellGrid[w][h]
+	Island -> Island: Create localGrid[w][h]
+
+	loop For each cell in island
+		Loader -> Block: Instantiate Block(type)
+		Loader -> Island: RegisterBlock(block, pos)
+		Island -> Island: localGrid[x,y] = block
+	end
+
+	Loader -> Manager: RegisterIsland(island)
+end
+
+Loader -> Scene: Setup Complete
+
+@enduml
+
+' ============================================
+' DIAGRAM 2: Player Move Action
+' ============================================
+autonumber
+
+participant "Player" as Player
+participant "Input System" as Input
+participant "Block" as Block
+participant "GridIsland" as Island
+participant "GravityManager" as Gravity
+participant "Camera" as Camera
+
+== Player Swipes Block ==
+
+Player -> Input: Swipe block (down)
+Input -> Input: DetectSwipe() = Direction.Down
+Input -> Island: Get block at swipe start
+
+Block <-- Input: Get block reference
+Input -> Block: CanPlayerMoveDirectly()?
+Block --> Input: true
+
+== Calculate Movement ==
+
+Input -> Block: TryMove(Down)
+
+Block -> Island: targetPos = gridPos + direction
+
+Block -> Island: CanMoveTo(targetPos)?
+Island -> Island: GetBlockAtLocalPos(targetPos)?
+Island --> Block: Empty (true)
+
+== Expand if Needed ==
+
+Block -> Island: ExpandGridIfNeeded(targetPos)
+Island -> Island: Check if outside bounds
+Island -> Island: If yes: Expand grid
+Island -> Island: Shift blocks if needed
+
+== Deploy (if GroundDeployer) ==
+
+alt Block is GroundDeployer
+	Block -> Island: Check if targetHasGround?
+	Block -> Island: deployAmmo > 0?
+	Block -> Island: DeployGroundTileAt(targetPos, prefab)
+	Island -> Island: DeployGroundTile visual
+	Block -> Block: CheckAndBridgeAdjacentIslands()
+	Block -> Island: Detect nearby islands
+	alt Islands overlap
+		Block -> Island: MergeOtherIsland(other)
+		Island -> Island: Expand to fit both
+		Island -> Island: Transfer blocks
+	end
+end
+
+== Execute Movement ==
+
+Block -> Island: RemoveBlock(currentPos)
+Island -> Island: localGrid[old.x, old.y] = null
+
+Block -> Island: RegisterBlock(this, newPos)
+Island -> Island: localGrid[new.x, new.y] = this
+Block -> Block: gridPosition = newPos
+
+Block -> Block: MoveToGridPosition(newPos)
+Block -> Block: Animate DOTween movement
+
+== Apply Gravity ==
+
+Input -> Gravity: ApplyGravityRoutine(islands)
+
+loop Until stable
+	Gravity -> Island: For each island
+
+	loop For each block in island
+		Gravity -> Island: GetBlockAtLocalPos(below)?
+		alt Cell below is empty
+			Gravity -> Block: Drop block
+			Block -> Block: Animate fall
+			Gravity -> Gravity: blockFellThisStep = true
+		end
+	end
+end
+
+== Check Win ==
+
+Input -> Input: CheckWinCondition()?
+Input -> Camera: Animate camera/effects if win
+
+@enduml
+
+' ============================================
+' DIAGRAM 3: Block Movement & Grid Operations
+' ============================================
+autonumber
+
+participant "PlayerInput" as Input
+participant "Block" as SrcBlock
+participant "CurrentIsland" as SrcIsland
+participant "TargetIsland" as TgtIsland
+participant "MultiGridManager" as Manager
+
+== Block Moves Between Islands ==
+
+Input -> SrcBlock: TryMove(direction)
+SrcBlock -> SrcIsland: Calculate targetPos
+
+alt Target on same island
+	SrcBlock -> SrcIsland: CanMoveTo(targetPos)?
+	SrcBlock -> SrcIsland: Move and animate
+else Target on different island
+	SrcBlock -> SrcIsland: GetIslandAtWorldPos(targetPos)
+	SrcBlock -> Manager: TryTransferBlockBetweenIslands()
+
+	Manager -> TgtIsland: WorldToLocal(targetPos)
+	Manager -> TgtIsland: IsCellOccupied(targetLocal)?
+	Manager -> SrcIsland: CanRemoveBlock(block)?
+
+	alt All checks pass
+		Manager -> SrcIsland: RemoveBlock(block)
+		Manager -> TgtIsland: RegisterBlock(block, targetLocal)
+		SrcBlock -> SrcBlock: Animate to new world position
+	else Check failed
+		Manager --> Input: Transfer failed
+	end
+end
+
+@enduml
+
+' ============================================
+' DIAGRAM 4: Gravity Application Detailed
+' ============================================
+autonumber
+
+participant "GravityManager" as GM
+participant "GridIsland" as Island
+participant "Block" as Block
+participant "DOTween" as Tween
+
+== Gravity Pass ==
+
+GM -> GM: blockFellThisStep = false
+
+loop For each island in activeIslands
+	loop y from 1 to height-1 (bottom to top)
+		loop x from 0 to width-1
+			GM -> Island: GetBlockAtLocalPos(x, y)?
+
+			alt Block exists
+				Block -> Island: GetBlockAtLocalPos(x, y-1)?
+
+				alt Cell below is empty AND block affected by gravity
+					GM -> Block: DropBlock(1 unit)
+					Block -> Block: gridPosition.y -= 1
+
+					Block -> Tween: CreateTween(oldPos → newPos)
+					Tween -> Block: Animate fall smoothly
+
+					GM -> GM: blockFellThisStep = true
+				end
+			end
+		end
+	end
+end
+
+alt blockFellThisStep == true
+	GM -> GM: Go to next pass
+else blockFellThisStep == false
+	GM -> GM: All stable - Done
+end
+
+@enduml
+
+' ============================================
+' DIAGRAM 5: Island Merge Process
+' ============================================
+autonumber
+
+participant "GroundDeployer" as Deployer
+participant "DeployIsland" as Main
+participant "Physics2D" as Physics
+participant "OtherIsland" as Other
+participant "MultiGridManager" as Manager
+
+== Island Bridge Detection ==
+
+Deployer -> Main: CheckAndBridgeAdjacentIslands()
+
+Main -> Main: Calculate deployed tile world pos
+Main -> Physics: OverlapBoxAll(worldPos, boxSize)
+
+Physics --> Main: Collider2D[] hits
+
+loop For each hit in hits
+	Main -> Other: GetComponentInParent<GridIsland>()
+
+	alt Other island found
+		Main -> Manager: ValidateIslands(Main, Other)
+
+		alt Can merge
+			Main -> Other: MergeOtherIsland(Other)
+
+			Other -> Other: Calculate grid size difference
+			Other -> Other: Resize cellGrid and localGrid
+
+			loop For each block in Other
+				Other -> Main: Transfer block reference
+				Main -> Main: Update gridPosition
+			end
+
+			Other -> Main: Update originPosition
+			Other -> Main: Reposition all blocks in world
+
+			Main -> Deployer: Move deployer to final post-merge position
+
+			Deployer -> Deployer: Break loop after merge
+		end
+	end
+end
+
+@enduml
+
+' ============================================
+' DIAGRAM 6: Coordinate System Transformation
+' ============================================
+autonumber
+
+participant "Player" as Player
+participant "Input" as Input
+participant "GridIsland" as Island
+participant "Transform" as Unity
+
+== World to Grid Conversion ==
+
+Player -> Input: Click at world position (5.3, 3.8)
+Input -> Island: WorldToGridPosition(5.3, 3.8)
+
+Island -> Unity: InverseTransformPoint(5.3, 3.8)
+Unity --> Island: Local position (relative)
+
+Island -> Island: Divide by cell size
+Island -> Island: Round to nearest int
+Island --> Input: Grid position (5, 3)
+
+== Grid to World Conversion ==
+
+Player -> Island: Move block to grid (5, 3)
+Island -> Island: GridToLocalPosition(5, 3)
+
+Island -> Island: Multiply by cell scale
+Island --> Island: Local 3D position (5.0, 3.0, 0.0)
+
+Island -> Unity: TransformPoint(local)
+Unity --> Island: World position
+
+Unity --> Player: Block at (5.0, 3.0, z)
+
+@enduml
+
+' ============================================
+' DIAGRAM 7: Block Type Decision Tree
+' ============================================
+autonumber
+
+participant "PlayerInput" as Input
+participant "Block" as Block
+participant "DynamicBlock" as Dynamic
+participant "MovableStatic" as Static
+participant "ImmovableBlock" as Immovable
+participant "GridIsland" as Island
+
+== Player Selects Block ==
+
+Input -> Block: CanPlayerMoveDirectly()?
+
+alt Dynamic Block
+	Block -> Dynamic: true
+	Dynamic -> Input: Allow selection
+	Input -> Dynamic: TryMove(direction)
+	Dynamic -> Island: Execute movement
+	Dynamic -> Island: Apply gravity
+
+else Movable Static Block
+	Block -> Static: true
+	Static -> Input: Allow selection
+	Input -> Static: TryMove(direction)
+	Static -> Island: Execute movement
+	Static -> Island: NO gravity applied
+
+else Immovable Block
+	Block -> Immovable: false
+	Immovable -> Input: Block cannot move
+	Input -> Input: Play error feedback
+
+else Special Block (Joint/Deployer)
+	Block -> Block: Custom behavior
+	Block -> Island: Execute special action
+end
+
+@enduml
