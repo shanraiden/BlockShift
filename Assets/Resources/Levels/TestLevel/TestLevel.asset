@@ -29,7 +29,7 @@ MonoBehaviour:
     originPosition: {x: 3, y: 0}
     width: 2
     height: 3
-    scaleFactorX: 1
+    scaleFactorX: 2
     scaleFactorY: 1
     gridData:
     - type: 1

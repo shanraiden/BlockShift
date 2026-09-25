@@ -15,8 +15,9 @@ public class GridIsland : MonoBehaviour
     private GridCell[,] cellGrid;
     private Block[,] localGrid;
     private List<Block> islandBlocks = new List<Block>();
-    public int scaleFactorX ;
+    public int scaleFactorX;
     public int scaleFactorY;
+
     public void InitializeIsland(int id, int w, int h, Vector2Int origin, GridCell[,] initialCells, Vector2 customBoxScale = default)
     {
         islandID = id;
@@ -24,7 +25,6 @@ public class GridIsland : MonoBehaviour
         height = h;
         originPosition = origin;
         boxScale = customBoxScale != Vector2.zero ? customBoxScale : Vector2.one;
-        // Transfer scale factors from GridIslandData into the runtime component
         scaleFactorX = Mathf.Max(1, Mathf.RoundToInt(customBoxScale.x));
         scaleFactorY = Mathf.Max(1, Mathf.RoundToInt(customBoxScale.y));
         cellGrid = new GridCell[width, height];
@@ -40,19 +40,27 @@ public class GridIsland : MonoBehaviour
         }
     }
 
-    
-
     /// <summary>
-    /// Converts a local grid index (x, y) into local 3D transform space accounting for cell scale.
+    /// Checks if this island's scale matches another island's scale.
     /// </summary>
+    public bool HasSameScale(GridIsland otherIsland)
+    {
+        if (otherIsland == null) return false;
+
+        bool sameBoxScale = Mathf.Approximately(this.boxScale.x, otherIsland.boxScale.x) &&
+                           Mathf.Approximately(this.boxScale.y, otherIsland.boxScale.y);
+
+        bool sameScaleFactors = (this.scaleFactorX == otherIsland.scaleFactorX) &&
+                                (this.scaleFactorY == otherIsland.scaleFactorY);
+
+        return sameBoxScale && sameScaleFactors;
+    }
+
     public Vector3 GridToLocalPosition(Vector2Int gridPos, float zOffset = 0f)
     {
         return new Vector3(gridPos.x * boxScale.x, gridPos.y * boxScale.y, zOffset);
     }
 
-    /// <summary>
-    /// Converts world space coordinate into local grid index considering cell box scaling.
-    /// </summary>
     public Vector2Int WorldToGridPosition(Vector3 worldPos)
     {
         Vector3 localPos = transform.InverseTransformPoint(worldPos);
@@ -102,7 +110,6 @@ public class GridIsland : MonoBehaviour
             }
         }
 
-        // 1. Shift internal grid array
         for (int x = 0; x < width; x++)
         {
             for (int y = 0; y < height; y++)
@@ -126,14 +133,12 @@ public class GridIsland : MonoBehaviour
         width = newWidth;
         height = newHeight;
 
-        // 2. COUNTER-BALANCE TRANSFORM SHIFT
         if (offsetX > 0 || offsetY > 0)
         {
             originPosition -= new Vector2Int(offsetX, offsetY);
 
             Vector3 localShiftVector = new Vector3(offsetX * boxScale.x, offsetY * boxScale.y, 0f);
 
-            // A. Update local positions of all blocks to match new grid array slot
             for (int x = 0; x < width; x++)
             {
                 for (int y = 0; y < height; y++)
@@ -146,7 +151,6 @@ public class GridIsland : MonoBehaviour
                 }
             }
 
-            // B. Update non-block visual children (like ground tiles)
             foreach (Transform child in transform)
             {
                 if (child.GetComponent<Block>() == null)
@@ -155,8 +159,6 @@ public class GridIsland : MonoBehaviour
                 }
             }
 
-            // C. CRITICAL STEP: Shift the parent GameObject transform back in world space!
-            // This cancels out localShiftVector so the island stays 100% stationary on screen.
             transform.position -= transform.TransformVector(localShiftVector);
         }
     }
@@ -255,22 +257,14 @@ public class GridIsland : MonoBehaviour
     {
         if (otherIsland == null || otherIsland == this) return;
 
-        // 1. Determine smallest grid scale and set it first
-        float thisScaleMag = this.boxScale.sqrMagnitude;
-        float otherScaleMag = otherIsland.boxScale.sqrMagnitude;
-
-        Vector2 targetScale = this.boxScale;
-        if (otherScaleMag < thisScaleMag)
+        // CANCEL MERGE IF SCALES DO NOT MATCH
+        if (!HasSameScale(otherIsland))
         {
-            targetScale = otherIsland.boxScale;
+            Debug.LogWarning($"Merge aborted: Scale mismatch between Island {this.islandID} and Island {otherIsland.islandID}");
+            return;
         }
 
-        if (this.boxScale != targetScale)
-        {
-            //SetGridScale(targetScale);
-        }
-
-        // 2. Collect cell types and world positions
+        // Collect cell types and world positions
         List<KeyValuePair<Vector3, TileType>> cellsToTransfer = new List<KeyValuePair<Vector3, TileType>>();
         if (otherIsland.cellGrid != null)
         {
@@ -299,7 +293,7 @@ public class GridIsland : MonoBehaviour
             }
         }
 
-        // Collect non-block visual ground tile transforms from otherIsland
+        // Collect non-block visual ground tile transforms
         List<Transform> visualTilesToTransfer = new List<Transform>();
         foreach (Transform child in otherIsland.transform)
         {
@@ -309,7 +303,7 @@ public class GridIsland : MonoBehaviour
             }
         }
 
-        // 3. PRE-EXPAND PHASE: Calculate required grid bounds
+        // Calculate required grid bounds
         Vector2Int minGridPos = new Vector2Int(0, 0);
         Vector2Int maxGridPos = new Vector2Int(width - 1, height - 1);
 
@@ -322,7 +316,6 @@ public class GridIsland : MonoBehaviour
             maxGridPos.y = Mathf.Max(maxGridPos.y, gridPos.y);
         }
 
-        // Expand grid bounds in a single pass
         if (minGridPos.x < 0 || minGridPos.y < 0)
         {
             ExpandGridIfNeeded(minGridPos);
@@ -332,14 +325,14 @@ public class GridIsland : MonoBehaviour
             ExpandGridIfNeeded(maxGridPos);
         }
 
-        // 4. REGISTER CELL DATA
+        // Transfer grid cells
         foreach (var kvp in cellsToTransfer)
         {
             Vector2Int targetGridPos = WorldToGridPosition(kvp.Key);
             SetTileTypeAt(targetGridPos, kvp.Value);
         }
 
-        // 5. TRANSFER & REPARENT VISUAL GROUND TILES
+        // Reparent visual ground tiles
         foreach (Transform tileTransform in visualTilesToTransfer)
         {
             Vector3 tileWorldPos = tileTransform.position;
@@ -350,7 +343,7 @@ public class GridIsland : MonoBehaviour
             tileTransform.localScale = new Vector3(boxScale.x, boxScale.y, 1f);
         }
 
-        // 6. TRANSFER & REPARENT BLOCKS
+        // Reparent blocks
         foreach (var kvp in blocksWithWorldPos)
         {
             Block block = kvp.Key;
@@ -370,13 +363,9 @@ public class GridIsland : MonoBehaviour
             block.transform.localPosition = GridToLocalPosition(newMainGridPos, block.transform.localPosition.z);
         }
 
-        // 7. Clean up merged island container
         Destroy(otherIsland.gameObject);
     }
-    /// <summary>
-    /// Sets the tile type at a specific local grid coordinate.
-    /// Expands grid if required and sets cell active state.
-    /// </summary>
+
     public void SetTileTypeAt(Vector2Int gridPos, TileType type)
     {
         if (!IsValidLocalPos(gridPos))
@@ -390,15 +379,12 @@ public class GridIsland : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Converts local grid coordinates to exact World Space coordinates,
-    /// accounting for island position, rotation, and boxScale.
-    /// </summary>
     public Vector3 GridToWorldPosition(Vector2Int gridPos, float zOffset = 0f)
     {
         Vector3 localPos = GridToLocalPosition(gridPos, zOffset);
         return transform.TransformPoint(localPos);
     }
+
     private bool VerifyConnectivity()
     {
         if (islandBlocks.Count <= 1) return true;
