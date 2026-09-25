@@ -1,24 +1,27 @@
 using System.Collections.Generic;
 using UnityEngine;
-using static UnityEngine.RuleTile.TilingRuleOutput;
 
-public partial class GridIsland : MonoBehaviour
+public class GridIsland : MonoBehaviour
 {
     public int islandID;
     public int width;
     public int height;
     public Vector2Int originPosition;
 
+    [Header("Cell Scaling")]
+    public Vector2 boxScale = Vector2.one; // Individual cell width and height multiplier
+
     private GridCell[,] cellGrid;
     private Block[,] localGrid;
     private List<Block> islandBlocks = new List<Block>();
 
-    public void InitializeIsland(int id, int w, int h, Vector2Int origin, GridCell[,] initialCells)
+    public void InitializeIsland(int id, int w, int h, Vector2Int origin, GridCell[,] initialCells, Vector2 customBoxScale = default)
     {
         islandID = id;
         width = w;
         height = h;
         originPosition = origin;
+        boxScale = customBoxScale != Vector2.zero ? customBoxScale : Vector2.one;
 
         cellGrid = new GridCell[width, height];
         localGrid = new Block[width, height];
@@ -34,23 +37,143 @@ public partial class GridIsland : MonoBehaviour
     }
 
     /// <summary>
-    /// Coordinates are valid ONLY if inside array bounds AND the cell type is not Empty.
+    /// Converts a local grid index (x, y) into local 3D transform space accounting for cell scale.
     /// </summary>
-    public bool IsValidLocalPos(Vector2Int pos)
+    public Vector3 GridToLocalPosition(Vector2Int gridPos, float zOffset = 0f)
     {
-        bool inBounds = pos.x >= 0 && pos.x < width && pos.y >= 0 && pos.y < height;
-        if (!inBounds) return false;
-
-        return cellGrid[pos.x, pos.y].IsActive;
+        return new Vector3(gridPos.x * boxScale.x, gridPos.y * boxScale.y, zOffset);
     }
+
+    /// <summary>
+    /// Converts world space coordinate into local grid index considering cell box scaling.
+    /// </summary>
+    public Vector2Int WorldToGridPosition(Vector3 worldPos)
+    {
+        Vector3 localPos = transform.InverseTransformPoint(worldPos);
+        int x = Mathf.RoundToInt(localPos.x / Mathf.Max(0.001f, boxScale.x));
+        int y = Mathf.RoundToInt(localPos.y / Mathf.Max(0.001f, boxScale.y));
+        return new Vector2Int(x, y);
+    }
+
+    public Vector2Int WorldToLocalPos(Vector3 worldPos) => WorldToGridPosition(worldPos);
 
     public Vector2Int WorldToLocal(Vector2Int worldPos) => worldPos - originPosition;
 
     public bool ContainsWorldPos(Vector2Int worldPos) => IsValidLocalPos(WorldToLocal(worldPos));
 
+    public bool IsValidLocalPos(Vector2Int pos)
+    {
+        bool inBounds = pos.x >= 0 && pos.x < width && pos.y >= 0 && pos.y < height;
+        if (!inBounds) return false;
+
+        return cellGrid != null && cellGrid[pos.x, pos.y].IsActive;
+    }
+
+    public void ExpandGridIfNeeded(Vector2Int targetLocalPos)
+    {
+        int offsetX = targetLocalPos.x < 0 ? -targetLocalPos.x : 0;
+        int offsetY = targetLocalPos.y < 0 ? -targetLocalPos.y : 0;
+
+        int requiredWidth = Mathf.Max(width + offsetX, targetLocalPos.x + 1 + offsetX);
+        int requiredHeight = Mathf.Max(height + offsetY, targetLocalPos.y + 1 + offsetY);
+
+        if (offsetX == 0 && offsetY == 0 && requiredWidth <= width && requiredHeight <= height)
+        {
+            return;
+        }
+
+        int newWidth = requiredWidth;
+        int newHeight = requiredHeight;
+
+        Block[,] newLocalGrid = new Block[newWidth, newHeight];
+        GridCell[,] newCellGrid = new GridCell[newWidth, newHeight];
+
+        for (int x = 0; x < newWidth; x++)
+        {
+            for (int y = 0; y < newHeight; y++)
+            {
+                newCellGrid[x, y] = new GridCell(TileType.Empty);
+            }
+        }
+
+        // 1. Shift internal grid array
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                if (cellGrid != null)
+                {
+                    newCellGrid[x + offsetX, y + offsetY] = cellGrid[x, y];
+                }
+
+                Block block = localGrid[x, y];
+                if (block != null)
+                {
+                    newLocalGrid[x + offsetX, y + offsetY] = block;
+                    block.gridPosition = new Vector2Int(x + offsetX, y + offsetY);
+                }
+            }
+        }
+
+        localGrid = newLocalGrid;
+        cellGrid = newCellGrid;
+        width = newWidth;
+        height = newHeight;
+
+        // 2. COUNTER-BALANCE TRANSFORM SHIFT
+        if (offsetX > 0 || offsetY > 0)
+        {
+            originPosition -= new Vector2Int(offsetX, offsetY);
+
+            Vector3 localShiftVector = new Vector3(offsetX * boxScale.x, offsetY * boxScale.y, 0f);
+
+            // A. Update local positions of all blocks to match new grid array slot
+            for (int x = 0; x < width; x++)
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    Block b = localGrid[x, y];
+                    if (b != null)
+                    {
+                        b.transform.localPosition = GridToLocalPosition(b.gridPosition, b.transform.localPosition.z);
+                    }
+                }
+            }
+
+            // B. Update non-block visual children (like ground tiles)
+            foreach (Transform child in transform)
+            {
+                if (child.GetComponent<Block>() == null)
+                {
+                    child.localPosition += localShiftVector;
+                }
+            }
+
+            // C. CRITICAL STEP: Shift the parent GameObject transform back in world space!
+            // This cancels out localShiftVector so the island stays 100% stationary on screen.
+            transform.position -= transform.TransformVector(localShiftVector);
+        }
+    }
+
+    public void DeployGroundTileAt(Vector2Int localPos, GameObject groundPrefab)
+    {
+        if (cellGrid != null && localPos.x >= 0 && localPos.x < width && localPos.y >= 0 && localPos.y < height)
+        {
+            cellGrid[localPos.x, localPos.y] = new GridCell(TileType.Ground);
+        }
+
+        if (groundPrefab != null)
+        {
+            GameObject bgGO = Instantiate(groundPrefab, transform);
+            bgGO.transform.localPosition = GridToLocalPosition(localPos, 0.1f);
+            bgGO.transform.localRotation = Quaternion.identity;
+            bgGO.transform.localScale = new Vector3(boxScale.x, boxScale.y, 1f);
+        }
+    }
+
     public void RegisterBlock(Block block, Vector2Int localPos)
     {
-        if (IsValidLocalPos(localPos))
+        if (localPos.x >= 0 && localPos.x < width && localPos.y >= 0 && localPos.y < height)
         {
             localGrid[localPos.x, localPos.y] = block;
             if (!islandBlocks.Contains(block)) islandBlocks.Add(block);
@@ -58,17 +181,25 @@ public partial class GridIsland : MonoBehaviour
         }
     }
 
+    public void ReceiveBlock(Block block, Vector2Int localPos)
+    {
+        RegisterBlock(block, localPos);
+    }
+
     public Block GetBlockAtLocalPos(Vector2Int localPos)
     {
-        return IsValidLocalPos(localPos) ? localGrid[localPos.x, localPos.y] : null;
+        if (localPos.x >= 0 && localPos.x < width && localPos.y >= 0 && localPos.y < height)
+        {
+            return localGrid[localPos.x, localPos.y];
+        }
+        return null;
     }
 
     public bool IsCellOccupiedLocal(Vector2Int localPos)
     {
-        if (!IsValidLocalPos(localPos)) return true; // Treat void space as solid boundary
+        if (!IsValidLocalPos(localPos)) return true;
         return localGrid[localPos.x, localPos.y] != null;
     }
-
 
     public bool CanMoveBlockLocal(Vector2Int from, Vector2Int to)
     {
@@ -79,15 +210,13 @@ public partial class GridIsland : MonoBehaviour
 
     public void ExecuteMoveLocal(Vector2Int from, Vector2Int to)
     {
-        Block block = localGrid[from.x, from.y];
+        Block block = GetBlockAtLocalPos(from);
         if (block == null) return;
 
         localGrid[from.x, from.y] = null;
         localGrid[to.x, to.y] = block;
         block.gridPosition = to;
     }
-
-    // --- RESTORED INTER-ISLAND TRANSFER METHODS ---
 
     public bool CanRemoveBlock(Vector2Int localPos)
     {
@@ -116,19 +245,74 @@ public partial class GridIsland : MonoBehaviour
         }
     }
 
-    public void ReceiveBlock(Block block, Vector2Int localPos)
+    public void MergeOtherIsland(GridIsland otherIsland)
     {
-        if (IsValidLocalPos(localPos))
-        {
-            localGrid[localPos.x, localPos.y] = block;
-            if (!islandBlocks.Contains(block))
-            {
-                islandBlocks.Add(block);
-            }
-            block.currentIsland = this;
-        }
-    }
+        if (otherIsland == null || otherIsland == this) return;
 
+        // 1. Collect all blocks on Island 2
+        Block[] blocksToTransfer = otherIsland.GetComponentsInChildren<Block>();
+
+        // Store world positions before making any changes
+        List<Vector3> worldPositions = new List<Vector3>();
+        foreach (Block b in blocksToTransfer)
+        {
+            if (b != null) worldPositions.Add(b.transform.position);
+        }
+
+        // 2. Pre-expand receiving island so all incoming block positions fit in the array
+        for (int i = 0; i < worldPositions.Count; i++)
+        {
+            Vector2Int targetLocalPos = WorldToGridPosition(worldPositions[i]);
+            ExpandGridIfNeeded(targetLocalPos);
+        }
+
+        // 3. Transfer each Block safely
+        for (int i = 0; i < blocksToTransfer.Length; i++)
+        {
+            Block block = blocksToTransfer[i];
+            if (block == null) continue;
+
+            // Remove from old island
+            otherIsland.RemoveBlock(block.gridPosition);
+
+            // Calculate exact target coordinate on expanded Island 1
+            Vector2Int newGridPos = WorldToGridPosition(worldPositions[i]);
+
+            // Reparent to Island 1
+            block.transform.SetParent(this.transform);
+            block.currentIsland = this;
+            block.gridPosition = newGridPos;
+
+            // Register in Island 1's grid
+            RegisterBlock(block, newGridPos);
+
+            // Snap block to local position
+            block.transform.localPosition = GridToLocalPosition(newGridPos, block.transform.localPosition.z);
+        }
+
+        // 4. Transfer non-Block visual components (like Ground Tiles)
+        Transform[] allChildren = otherIsland.GetComponentsInChildren<Transform>();
+        foreach (Transform child in allChildren)
+        {
+            if (child != null && child != otherIsland.transform && child.GetComponent<Block>() == null && child.parent == otherIsland.transform)
+            {
+                Vector3 tileWorldPos = child.position;
+                child.SetParent(this.transform);
+
+                Vector2Int tileGridPos = WorldToGridPosition(tileWorldPos);
+                child.localPosition = GridToLocalPosition(tileGridPos, 0.1f);
+
+                // Set ground cell active in cellGrid
+                if (tileGridPos.x >= 0 && tileGridPos.x < width && tileGridPos.y >= 0 && tileGridPos.y < height)
+                {
+                    cellGrid[tileGridPos.x, tileGridPos.y] = new GridCell(TileType.Ground);
+                }
+            }
+        }
+
+        // 5. Safe Destruction
+        Destroy(otherIsland.gameObject);
+    }
     private bool VerifyConnectivity()
     {
         if (islandBlocks.Count <= 1) return true;
@@ -174,252 +358,4 @@ public partial class GridIsland : MonoBehaviour
 
         return new Vector2Int(-1, -1);
     }
-}
-
-public partial class GridIsland : MonoBehaviour
-{
-    public void ExpandGridIfNeeded(Vector2Int targetLocalPos)
-    {
-        int requiredWidth = Mathf.Max(width, targetLocalPos.x + 1);
-        int requiredHeight = Mathf.Max(height, targetLocalPos.y + 1);
-
-        int offsetX = targetLocalPos.x < 0 ? -targetLocalPos.x : 0;
-        int offsetY = targetLocalPos.y < 0 ? -targetLocalPos.y : 0;
-
-        if (requiredWidth <= width && requiredHeight <= height && offsetX == 0 && offsetY == 0)
-        {
-            return; // Array is already large enough
-        }
-
-        int newWidth = requiredWidth + offsetX;
-        int newHeight = requiredHeight + offsetY;
-
-        Block[,] newLocalGrid = new Block[newWidth, newHeight];
-        GridCell[,] newCellGrid = new GridCell[newWidth, newHeight];
-
-        // 1. Fill new cell grid with empty tiles
-        for (int x = 0; x < newWidth; x++)
-        {
-            for (int y = 0; y < newHeight; y++)
-            {
-                newCellGrid[x, y] = new GridCell(TileType.Empty);
-            }
-        }
-
-        // 2. Copy existing cellGrid and localGrid
-        for (int x = 0; x < width; x++)
-        {
-            for (int y = 0; y < height; y++)
-            {
-                if (cellGrid != null)
-                {
-                    newCellGrid[x + offsetX, y + offsetY] = cellGrid[x, y];
-                }
-
-                Block block = localGrid[x, y];
-                if (block != null)
-                {
-                    newLocalGrid[x + offsetX, y + offsetY] = block;
-                    block.gridPosition += new Vector2Int(offsetX, offsetY);
-                }
-            }
-        }
-
-        // 3. Handle negative coordinate expansion (-X or -Y)
-        if (offsetX > 0 || offsetY > 0)
-        {
-            originPosition -= new Vector2Int(offsetX, offsetY);
-
-            // Move the parent island root left/down in world space
-            transform.position -= new Vector3(offsetX, offsetY, 0);
-
-            // Shift ALL child transforms (ground tiles, dot tiles, blocks) right/up in local space
-            // World position = (IslandPos - offset) + (LocalPos + offset) = Unchanged!
-            foreach (UnityEngine.Transform child in transform)
-            {
-                child.localPosition += new Vector3(offsetX, offsetY, 0);
-            }
-        }
-
-        localGrid = newLocalGrid;
-        cellGrid = newCellGrid;
-        width = newWidth;
-        height = newHeight;
-    }
-
-    /// <summary>
-    /// Spawns a background ground tile without double-expanding.
-    /// </summary>
-    public void DeployGroundTileAt(Vector2Int localPos, GameObject groundPrefab)
-    {
-        if (cellGrid != null && localPos.x >= 0 && localPos.x < width && localPos.y >= 0 && localPos.y < height)
-        {
-            cellGrid[localPos.x, localPos.y] = new GridCell(TileType.Ground);
-        }
-
-        if (groundPrefab != null)
-        {
-            GameObject bgGO = Instantiate(groundPrefab, transform);
-            bgGO.transform.localPosition = new Vector3(localPos.x, localPos.y, 0.1f);
-            bgGO.transform.localRotation = Quaternion.identity;
-            bgGO.transform.localScale = Vector3.one;
-        }
-    }
-}
-
-public partial class GridIsland : MonoBehaviour
-{
-    public Vector2Int WorldToLocalPos(Vector3 worldPos)
-    {
-        Vector3 localPos = transform.InverseTransformPoint(worldPos);
-        return new Vector2Int(Mathf.RoundToInt(localPos.x), Mathf.RoundToInt(localPos.y));
-    }
-
-    /// <summary>
-    /// Self-contained island absorption. Preserves all block positions and grid references 
-    /// without modifying existing external methods like RegisterBlock.
-    /// </summary>
-    public void MergeOtherIsland(GridIsland otherIsland)
-    {
-        if (otherIsland == null || otherIsland == this) return;
-
-        Debug.Log($"<color=yellow>[GridIsland] Starting Merge: Absorption of '{otherIsland.name}' into '{this.name}'</color>");
-
-        // 1. Gather all Block components from Island 2 and cache their exact World Positions
-        Block[] foundBlocks = otherIsland.GetComponentsInChildren<Block>();
-        List<Block> blocksToTransfer = new List<Block>(foundBlocks);
-        List<Vector3> blockWorldPositions = new List<Vector3>();
-
-        for (int i = 0; i < blocksToTransfer.Count; i++)
-        {
-            if (blocksToTransfer[i] != null)
-            {
-                blockWorldPositions.Add(blocksToTransfer[i].transform.position);
-            }
-        }
-
-        // 2. Gather non-Block visual transforms (ground tiles, decorations) and cache World Positions
-        List<UnityEngine.Transform> visualChildren = new List<UnityEngine.Transform>();
-        List<Vector3> visualWorldPositions = new List<Vector3>();
-
-        foreach (UnityEngine.Transform child in otherIsland.transform)
-        {
-            if (child.GetComponent<Block>() == null && child.GetComponentInChildren<Block>() == null)
-            {
-                visualChildren.Add(child);
-                visualWorldPositions.Add(child.position);
-            }
-        }
-
-        // 3. STEP A: PRE-EXPAND Island 1 grid to fit ALL incoming block & visual positions.
-        // Doing this before moving anything keeps Island 1's local coordinate origin locked!
-        for (int i = 0; i < blockWorldPositions.Count; i++)
-        {
-            Vector2Int targetLocalPos = WorldToLocalPos(blockWorldPositions[i]);
-            ExpandGridIfNeeded(targetLocalPos);
-        }
-
-        for (int i = 0; i < visualWorldPositions.Count; i++)
-        {
-            Vector2Int targetLocalPos = WorldToLocalPos(visualWorldPositions[i]);
-            ExpandGridIfNeeded(targetLocalPos);
-        }
-
-        // 4. STEP B: TRANSFER AND REGISTER ALL BLOCKS
-        for (int i = 0; i < blocksToTransfer.Count; i++)
-        {
-            Block block = blocksToTransfer[i];
-            if (block == null) continue;
-
-            // Remove from old island
-            otherIsland.RemoveBlock(block.gridPosition);
-
-            // Re-calculate local grid coordinate on Island 1 now that expansion is locked
-            Vector2Int newLocalPos = WorldToLocalPos(blockWorldPositions[i]);
-
-            // Double check array limits after expansion
-            if (newLocalPos.x >= 0 && newLocalPos.x < width && newLocalPos.y >= 0 && newLocalPos.y < height)
-            {
-                // Check if target cell is already occupied by an Island 1 block
-                if (localGrid[newLocalPos.x, newLocalPos.y] != null && localGrid[newLocalPos.x, newLocalPos.y] != block)
-                {
-                    Debug.LogWarning($"[GridIsland] Collision at {newLocalPos} for '{block.name}'. Finding free cell...");
-                    newLocalPos = FindNearestFreeCell(newLocalPos);
-                    ExpandGridIfNeeded(newLocalPos);
-                }
-            }
-
-            // Update transform parenting & island reference
-            block.transform.SetParent(this.transform);
-            block.currentIsland = this;
-            block.gridPosition = newLocalPos;
-
-            // Direct internal registration (No modified methods called)
-            if (!islandBlocks.Contains(block))
-            {
-                islandBlocks.Add(block);
-            }
-
-            if (newLocalPos.x >= 0 && newLocalPos.x < width && newLocalPos.y >= 0 && newLocalPos.y < height)
-            {
-                localGrid[newLocalPos.x, newLocalPos.y] = block;
-
-                if (cellGrid != null)
-                {
-                    cellGrid[newLocalPos.x, newLocalPos.y] = new GridCell(TileType.Ground);
-                }
-            }
-
-            // Snap physical position to match grid index
-            block.MoveToGridPosition(newLocalPos);
-
-            Debug.Log($"[GridIsland] Transferred '{block.name}' -> Island1 Local Pos: {newLocalPos}");
-        }
-
-        // 5. STEP C: TRANSFER VISUAL TILES
-        for (int i = 0; i < visualChildren.Count; i++)
-        {
-            UnityEngine.Transform visual = visualChildren[i];
-            if (visual == null) continue;
-
-            Vector2Int targetLocalPos = WorldToLocalPos(visualWorldPositions[i]);
-
-            visual.SetParent(this.transform);
-            visual.localPosition = new Vector3(targetLocalPos.x, targetLocalPos.y, visual.localPosition.z);
-
-            if (cellGrid != null && targetLocalPos.x >= 0 && targetLocalPos.x < width && targetLocalPos.y >= 0 && targetLocalPos.y < height)
-            {
-                cellGrid[targetLocalPos.x, targetLocalPos.y] = new GridCell(TileType.Ground);
-            }
-        }
-
-        // 6. Clean up secondary island GameObject
-        Debug.Log($"<color=cyan>[GridIsland] Destroying old island '{otherIsland.name}'</color>");
-        Destroy(otherIsland.gameObject);
-    }
-
-    private Vector2Int FindNearestFreeCell(Vector2Int startPos)
-    {
-        Vector2Int[] offsets = new Vector2Int[]
-        {
-            Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right,
-            new Vector2Int(1, 1), new Vector2Int(-1, 1), new Vector2Int(1, -1), new Vector2Int(-1, -1)
-        };
-
-        foreach (Vector2Int dir in offsets)
-        {
-            Vector2Int candidate = startPos + dir;
-            if (candidate.x >= 0 && candidate.x < width && candidate.y >= 0 && candidate.y < height)
-            {
-                if (localGrid[candidate.x, candidate.y] == null)
-                {
-                    return candidate;
-                }
-            }
-        }
-
-        return startPos;
-    }
-
-   
 }

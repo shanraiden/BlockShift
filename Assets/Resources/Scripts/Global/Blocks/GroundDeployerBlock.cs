@@ -23,81 +23,81 @@ public class GroundDeployerBlock : Block
 
         GridIsland targetIsland = currentIsland;
 
-        Vector2Int startPos = gridPosition;
-        Vector2Int targetPos = startPos + direction;
+        // 1. Calculate target intent before grid expansion
+        Vector2Int intendedTargetPos = gridPosition + direction;
 
-        // 1. Check if target cell ALREADY has ground before grid expansion
-        bool targetHasGround = targetIsland.IsValidLocalPos(targetPos);
+        // 2. Check if target cell already has ground tile
+        bool targetHasGround = targetIsland.IsValidLocalPos(intendedTargetPos);
 
-        // 2. AMMO GUARD
+        // 3. Ammo Guard
         if (!targetHasGround && deployAmmo <= 0)
         {
             return false;
         }
 
-        // 3. EXPAND GRID: Pre-expand if moving into negative bounds or new bounds
-        targetIsland.ExpandGridIfNeeded(targetPos);
+        // 4. Expand grid for the deployer's target space if needed
+        targetIsland.ExpandGridIfNeeded(intendedTargetPos);
 
-        // 4. Re-read coordinates after origin adjustment
-        Vector2Int actualStartPos = gridPosition;
-        Vector2Int actualTargetPos = actualStartPos + direction;
+        // 5. Read deployer's current position and target cell AFTER expansion
+        Vector2Int startPos = this.gridPosition;
+        Vector2Int targetPos = startPos + direction;
 
-        // 5. BLOCK OVERLAP CHECK: Use base CanMoveTo method!
-        if (!CanMoveTo(actualTargetPos))
+        // 6. Block Overlap Check
+        if (!CanMoveTo(targetPos))
         {
-            Debug.Log($"[Deployer] Cannot move to {actualTargetPos} - space occupied by another block!");
             return false;
         }
 
-        // 6. DEPLOYMENT
+        // 7. Deploy Ground Tile if moving into empty space
         if (!targetHasGround)
         {
             deployAmmo--;
             if (groundBlockPrefab != null)
             {
-                targetIsland.DeployGroundTileAt(actualTargetPos, groundBlockPrefab);
+                targetIsland.DeployGroundTileAt(targetPos, groundBlockPrefab);
             }
 
-            // Scan and merge adjacent islands
-            CheckAndBridgeAdjacentIslands(targetIsland, actualTargetPos);
+            // CRITICAL STEP: Bridge / Merge islands BEFORE moving the deployer.
+            // If Island 2 merges, Island 1 may expand again and update 'this.gridPosition'!
+            CheckAndBridgeAdjacentIslands(targetIsland, targetPos);
         }
 
-        // 7. EXECUTE MOVEMENT
-        targetIsland.RemoveBlock(actualStartPos);
+        // 8. READ FINAL POSITION POST-MERGE
+        // 'this.gridPosition' was automatically shifted by MergeOtherIsland if expansion occurred.
+        // We calculate the final destination relative to where the deployer is RIGHT NOW.
+        Vector2Int finalStartPos = this.gridPosition;
+        Vector2Int finalTargetPos = finalStartPos + direction;
 
-        this.gridPosition = actualTargetPos;
+        // 9. Execute Movement to the true post-merge target coordinate
+        targetIsland.RemoveBlock(finalStartPos);
+
+        this.gridPosition = finalTargetPos;
         this.currentIsland = targetIsland;
-        targetIsland.RegisterBlock(this, actualTargetPos);
+        targetIsland.RegisterBlock(this, finalTargetPos);
 
-        this.MoveToGridPosition(actualTargetPos);
+        // Animate to the exact post-merge local coordinate
+        this.MoveToGridPosition(finalTargetPos);
 
         return true;
     }
 
-    /// <summary>
-    /// Scans 4 orthogonal neighbor cells around newly deployed ground to detect and merge adjacent islands.
-    /// </summary>
-    /// <summary>
-    /// Scans neighbor cells around newly deployed ground to detect and merge adjacent islands.
-    /// </summary>
     private void CheckAndBridgeAdjacentIslands(GridIsland mainIsland, Vector2Int deployedLocalPos)
     {
-        // Convert the local grid coordinate of the newly placed ground into world position
-        Vector3 deployedWorldPos = mainIsland.transform.TransformPoint(new Vector3(deployedLocalPos.x, deployedLocalPos.y, 0));
+        // Re-calculate deployed tile's EXACT world position post-expansion
+        Vector3 localPos = mainIsland.GridToLocalPosition(deployedLocalPos, 0f);
+        Vector3 deployedWorldPos = mainIsland.transform.TransformPoint(localPos);
 
-       // Debug.Log($"[Deployer] Scanning for adjacent islands around world pos: {deployedWorldPos}");
+        Vector2 boxSize = new Vector2(
+            1.2f * mainIsland.boxScale.x * mainIsland.transform.lossyScale.x,
+            1.2f * mainIsland.boxScale.y * mainIsland.transform.lossyScale.y
+        );
 
-        // 1. Overlap scan around the new ground tile (1.5 unit box covers adjacent cells)
-        Collider2D[] hits = Physics2D.OverlapBoxAll(deployedWorldPos, Vector2.one * 1.5f, 0f);
-
-        //Debug.Log($"[Deployer] OverlapBox detected {hits.Length} colliders.");
+        Collider2D[] hits = Physics2D.OverlapBoxAll(deployedWorldPos, boxSize, mainIsland.transform.eulerAngles.z);
 
         foreach (Collider2D hit in hits)
         {
-            // 2. Find the GridIsland component by checking the parent hierarchy of the hit object
             GridIsland detectedIsland = hit.GetComponentInParent<GridIsland>();
 
-            // Fallback: check if the object itself is a Block pointing to an island
             if (detectedIsland == null)
             {
                 Block hitBlock = hit.GetComponent<Block>();
@@ -107,22 +107,10 @@ public class GroundDeployerBlock : Block
                 }
             }
 
-            if (detectedIsland != null)
+            if (detectedIsland != null && detectedIsland != mainIsland)
             {
-               // Debug.Log($"[Deployer] Found island '{detectedIsland.name}' via collider '{hit.name}'");
-
-                // 3. If it's a DIFFERENT island, merge it into mainIsland!
-                if (detectedIsland != mainIsland)
-                {
-                  //  Debug.Log($"<color=green>[Deployer] BRIDGE SUCCESS! Merging '{detectedIsland.name}' into '{mainIsland.name}'...</color>");
-
-                    mainIsland.MergeOtherIsland(detectedIsland);
-                    break; // Stop scanning after initiating merge
-                }
-            }
-            else
-            {
-                //Debug.Log($"[Deployer] Hit collider '{hit.name}' but it is not attached to any GridIsland.");
+                mainIsland.MergeOtherIsland(detectedIsland);
+                break; // Stop after merging
             }
         }
     }
