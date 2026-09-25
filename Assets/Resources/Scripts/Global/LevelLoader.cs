@@ -19,15 +19,15 @@ public class LevelLoader : MonoBehaviour
     [SerializeField] private GameObject movableStaticPrefab;          // STA
     [SerializeField] private GameObject dynamicPrefab;                // DYN
     [SerializeField] private GameObject jointPrefab;                  // JNT
-    [SerializeField] private GameObject groundDeployerBlockPrefab;     // Deployer Block
+    [SerializeField] private GameObject groundDeployerBlockPrefab;    // Deployer Block
 
     [Header("Deployer Initial Ammo")]
     [SerializeField] private int initialDeployerAmmo = 3; // Default ammo for deployer blocks
+
     private void Awake()
     {
         if (multiGridManager == null)
             multiGridManager = GetComponent<MultiGridManager>();
-        
     }
 
     private IEnumerator Start()
@@ -55,6 +55,11 @@ public class LevelLoader : MonoBehaviour
 
         foreach (var islandData in currentLevel.islands)
         {
+            // Extract integer scale factors (enforce minimum 1)
+            int scaleX = Mathf.Max(1, islandData.scaleFactorX);
+            int scaleY = Mathf.Max(1, islandData.scaleFactorY);
+            Vector3 tileScale = new Vector3(scaleX, scaleY, 1f);
+
             // 1. Position the Island parent at its origin in world space
             GameObject islandGO = new GameObject($"Island_{islandData.islandID}");
             islandGO.transform.position = new Vector3(islandData.originPosition.x, islandData.originPosition.y, 0f);
@@ -75,7 +80,8 @@ public class LevelLoader : MonoBehaviour
                 islandData.width,
                 islandData.height,
                 islandData.originPosition,
-                structGrid
+                structGrid,
+                new Vector2(scaleX, scaleY)
             );
 
             if (multiGridManager != null)
@@ -93,8 +99,8 @@ public class LevelLoader : MonoBehaviour
                     // ONLY skip if the cell is explicitly set to Void (Empty)
                     if (cell.type == TileType.Empty) continue;
 
-                    // Local position within island container
-                    Vector3 localPos = new Vector3(x, y, 0f);
+                    // Local position within island container scaled by scaleFactorX and scaleFactorY
+                    Vector3 localPos = new Vector3(x * scaleX, y * scaleY, 0f);
 
                     // 1. Always spawn background Ground tile for non-empty cells
                     if (emptyCellPrefab != null)
@@ -102,7 +108,7 @@ public class LevelLoader : MonoBehaviour
                         GameObject bgGO = Instantiate(emptyCellPrefab, islandGO.transform);
                         bgGO.transform.localPosition = new Vector3(localPos.x, localPos.y, 0.1f);
                         bgGO.transform.localRotation = Quaternion.identity;
-                        bgGO.transform.localScale = Vector3.one;
+                        bgGO.transform.localScale = tileScale;
                     }
 
                     // 2. Spawn Block if cell type is a Block
@@ -115,7 +121,7 @@ public class LevelLoader : MonoBehaviour
                             GameObject blockGO = Instantiate(prefabToSpawn, islandGO.transform);
                             blockGO.transform.localPosition = localPos;
                             blockGO.transform.localRotation = Quaternion.identity;
-                            blockGO.transform.localScale = Vector3.one;
+                            blockGO.transform.localScale = tileScale;
 
                             if (blockGO.TryGetComponent<Block>(out Block blockScript))
                             {
@@ -125,7 +131,6 @@ public class LevelLoader : MonoBehaviour
                                 // Special Setup: Inject Ground Prefab and initial ammo if this is a GroundDeployerBlock
                                 if (blockScript is GroundDeployerBlock deployerBlock)
                                 {
-                                    
                                     deployerBlock.ConfigureDeployer(emptyCellPrefab, initialDeployerAmmo);
                                 }
                             }

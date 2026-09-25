@@ -52,7 +52,6 @@ public class GroundDeployerBlock : Block
         {
           
             deployAmmo--;
-            print(deployAmmo);
             if (groundBlockPrefab != null)
             {
                 targetIsland.DeployGroundTileAt(targetPos, groundBlockPrefab);

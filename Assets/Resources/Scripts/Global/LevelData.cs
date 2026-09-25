@@ -1,5 +1,5 @@
+using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 public enum TileType
@@ -13,7 +13,7 @@ public enum TileType
     GroundDeployer
 }
 
-[System.Serializable]
+[Serializable]
 public struct GridCell
 {
     public TileType type;
@@ -29,7 +29,7 @@ public struct GridCell
     public bool IsActive => type != TileType.Empty;
 }
 
-[System.Serializable]
+[Serializable]
 public class GridIslandData
 {
     public int islandID;
@@ -37,35 +37,39 @@ public class GridIslandData
     public int width = 3;
     public int height = 3;
 
-    public Vector3 islandScale = Vector3.one; // Controls entire island world transform scale
-    public Vector2 boxScale = Vector2.one;    // Controls cell grid dimensioning
+    // Single integer scale factor
+    public int scaleFactorX = 1;
+    public int scaleFactorY = 1;
+    public List<GridCell> gridData = new List<GridCell>();
 
-    public List<GridCell> gridData;
-
+    /// <summary>
+    /// Gets the GridCell at local (x, y) coordinates safely.
+    /// </summary>
     public GridCell GetCell(int x, int y)
     {
-        int index = y * width + x; // Standard 2D to 1D mapping
-        if (index >= 0 && index < gridData.Count())
+        int index = y * width + x;
+        if (index >= 0 && index < gridData.Count)
+        {
             return gridData[index];
+        }
         return new GridCell { type = TileType.Empty };
+    }
+
+    /// <summary>
+    /// Overload for Vector2Int coordinates.
+    /// </summary>
+    public GridCell GetCell(Vector2Int pos)
+    {
+        return GetCell(pos.x, pos.y);
     }
 
     public void ValidateGridSize()
     {
         int requiredSize = width * height;
-
-        if (gridData == null)
-        {
-            gridData = new List<GridCell>();
-        }
-
-        // Resize list if width/height changed
         while (gridData.Count < requiredSize)
         {
-            // Default new cells to Ground so they aren't skipped as Void
-            gridData.Add(new GridCell { type = TileType.Ground });
+            gridData.Add(new GridCell { type = TileType.Empty });
         }
-
         while (gridData.Count > requiredSize)
         {
             gridData.RemoveAt(gridData.Count - 1);

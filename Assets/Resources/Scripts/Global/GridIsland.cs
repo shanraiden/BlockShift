@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public class GridIsland : MonoBehaviour
 {
@@ -14,7 +15,8 @@ public class GridIsland : MonoBehaviour
     private GridCell[,] cellGrid;
     private Block[,] localGrid;
     private List<Block> islandBlocks = new List<Block>();
-
+    public int scaleFactorX ;
+    public int scaleFactorY;
     public void InitializeIsland(int id, int w, int h, Vector2Int origin, GridCell[,] initialCells, Vector2 customBoxScale = default)
     {
         islandID = id;
@@ -22,7 +24,9 @@ public class GridIsland : MonoBehaviour
         height = h;
         originPosition = origin;
         boxScale = customBoxScale != Vector2.zero ? customBoxScale : Vector2.one;
-
+        // Transfer scale factors from GridIslandData into the runtime component
+        scaleFactorX = Mathf.Max(1, Mathf.RoundToInt(customBoxScale.x));
+        scaleFactorY = Mathf.Max(1, Mathf.RoundToInt(customBoxScale.y));
         cellGrid = new GridCell[width, height];
         localGrid = new Block[width, height];
         islandBlocks.Clear();
@@ -35,6 +39,8 @@ public class GridIsland : MonoBehaviour
             }
         }
     }
+
+    
 
     /// <summary>
     /// Converts a local grid index (x, y) into local 3D transform space accounting for cell scale.

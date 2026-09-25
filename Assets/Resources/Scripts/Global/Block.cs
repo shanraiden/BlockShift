@@ -23,6 +23,7 @@ public abstract class Block : MonoBehaviour
         if (spriteRenderer != null)
             defaultColor = spriteRenderer.color;
     }
+
     public bool CanMoveTo(Vector2Int targetPos)
     {
         // Always query currentIsland dynamically!
@@ -37,6 +38,7 @@ public abstract class Block : MonoBehaviour
 
         return true;
     }
+
     /// <summary>
     /// Can this block be selected and swiped directly by the player?
     /// </summary>
@@ -53,13 +55,18 @@ public abstract class Block : MonoBehaviour
 
         if (currentIsland != null)
         {
-            Vector3 targetWorldPos = new Vector3(
-                currentIsland.originPosition.x + newLocalPos.x,
-                currentIsland.originPosition.y + newLocalPos.y,
-                0
+            // Calculate scaled local position within island using scaleFactorX/Y
+            int scaleX = Mathf.Max(1, currentIsland.scaleFactorX);
+            int scaleY = Mathf.Max(1, currentIsland.scaleFactorY);
+
+            Vector3 targetLocalPos = new Vector3(
+                newLocalPos.x * scaleX,
+                newLocalPos.y * scaleY,
+                transform.localPosition.z
             );
 
-            transform.DOMove(targetWorldPos, duration).SetEase(Ease.OutQuad);
+            // Animate local move relative to parent island
+            transform.DOLocalMove(targetLocalPos, duration).SetEase(Ease.OutQuad);
         }
     }
 

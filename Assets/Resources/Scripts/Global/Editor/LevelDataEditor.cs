@@ -54,8 +54,8 @@ public class LevelDataEditor : Editor
                 width = 3,
                 height = 3,
                 originPosition = new Vector2Int((newID - 1) * 5, 0),
-                islandScale = Vector3.one, // Default scale
-                boxScale = Vector2.one       // Default individual cell scale
+                scaleFactorX = 1, // Default integer scale factor
+                scaleFactorY = 1  // Default integer scale factor
             });
             EditorUtility.SetDirty(level);
         }
@@ -89,18 +89,18 @@ public class LevelDataEditor : Editor
             island.width = Mathf.Max(1, EditorGUILayout.IntField("Width", island.width));
             island.height = Mathf.Max(1, EditorGUILayout.IntField("Height", island.height));
 
-            // --- SCALE CONTROLS ---
-            island.islandScale = EditorGUILayout.Vector3Field("Island Scale (World)", island.islandScale);
-            island.boxScale = EditorGUILayout.Vector2Field("Box/Tile Scale", island.boxScale);
+            // --- SINGLE INTEGER SCALE FACTOR CONTROL ---
+            island.scaleFactorX = Mathf.Max(1, EditorGUILayout.IntField("Scale Factor X", island.scaleFactorX));
+            island.scaleFactorY = Mathf.Max(1, EditorGUILayout.IntField("Scale Factor Y", island.scaleFactorY));
 
             island.ValidateGridSize();
 
             EditorGUILayout.Space(5);
             EditorGUILayout.LabelField("Grid View (Top-Down)", EditorStyles.miniBoldLabel);
 
-            // Calculate UI dimensions dynamically based on boxScale
-            float cellWidth = Mathf.Max(20f, 50f * island.boxScale.x);
-            float cellHeight = Mathf.Max(20f, 35f * island.boxScale.y);
+            // Calculate UI dimensions dynamically based on integer scaleFactor
+            float cellWidth = Mathf.Max(20f, 40f * island.scaleFactorX);
+            float cellHeight = Mathf.Max(20f, 30f * island.scaleFactorY);
 
             // Draw Interactive Grid Buttons
             for (int y = island.height - 1; y >= 0; y--)

@@ -14,7 +14,6 @@ public class GravityManager : MonoBehaviour
         {
             yield break;
         }
-         
 
         bool blockFellThisStep;
         int passCount = 0;
@@ -28,6 +27,10 @@ public class GravityManager : MonoBehaviour
             foreach (var island in activeIslands)
             {
                 if (island == null) continue;
+
+                // Extract island integer scale factors
+                int scaleX = Mathf.Max(1, island.scaleFactorX);
+                int scaleY = Mathf.Max(1, island.scaleFactorY);
 
                 // Scan bottom-to-top starting from y = 1 up to height - 1
                 for (int y = 1; y < island.height; y++)
@@ -44,27 +47,21 @@ public class GravityManager : MonoBehaviour
                             bool isValidBelow = island.IsValidLocalPos(belowPos);
                             bool isOccupiedBelow = island.IsCellOccupiedLocal(belowPos);
 
-                            // Log block status for dynamic blocks
-                            if (isDynamic)
-                            {
-                            }
-
                             if (isDynamic && isValidBelow && !isOccupiedBelow)
                             {
-
                                 // Update Grid Array Data
                                 island.ExecuteMoveLocal(currentPos, belowPos);
                                 block.gridPosition = belowPos;
 
-                                // World target position
-                                Vector3 targetWorldPos = new Vector3(
-                                    island.originPosition.x + belowPos.x,
-                                    island.originPosition.y + belowPos.y,
-                                    0
+                                // Scaled local target position within island parent space
+                                Vector3 targetLocalPos = new Vector3(
+                                    belowPos.x * scaleX,
+                                    belowPos.y * scaleY,
+                                    block.transform.localPosition.z
                                 );
 
                                 Tween fallTween = block.transform
-                                    .DOMove(targetWorldPos, fallStepDuration)
+                                    .DOLocalMove(targetLocalPos, fallStepDuration)
                                     .SetEase(fallEase);
 
                                 activeFallTweens.Add(fallTween);
@@ -81,6 +78,5 @@ public class GravityManager : MonoBehaviour
             }
 
         } while (blockFellThisStep);
-
     }
 }

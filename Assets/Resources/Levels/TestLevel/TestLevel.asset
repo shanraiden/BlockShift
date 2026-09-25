@@ -20,8 +20,8 @@ MonoBehaviour:
     originPosition: {x: 0, y: 1}
     width: 1
     height: 1
-    islandScale: {x: 1, y: 1, z: 1}
-    boxScale: {x: 1, y: 1}
+    scaleFactorX: 1
+    scaleFactorY: 1
     gridData:
     - type: 6
       blockColorID: 0
@@ -29,18 +29,18 @@ MonoBehaviour:
     originPosition: {x: 3, y: 0}
     width: 2
     height: 3
-    islandScale: {x: 1, y: 1, z: 1}
-    boxScale: {x: 1.62, y: 1}
+    scaleFactorX: 1
+    scaleFactorY: 2
     gridData:
     - type: 1
       blockColorID: 0
-    - type: 1
+    - type: 2
       blockColorID: 0
     - type: 3
       blockColorID: 0
-    - type: 1
+    - type: 5
       blockColorID: 0
-    - type: 1
+    - type: 4
       blockColorID: 0
     - type: 1
       blockColorID: 0
@@ -48,8 +48,8 @@ MonoBehaviour:
     originPosition: {x: -4, y: 0}
     width: 2
     height: 3
-    islandScale: {x: 1, y: 1, z: 1}
-    boxScale: {x: 1, y: 1}
+    scaleFactorX: 1
+    scaleFactorY: 1
     gridData:
     - type: 1
       blockColorID: 0
@@ -67,8 +67,8 @@ MonoBehaviour:
     originPosition: {x: -1, y: -4}
     width: 3
     height: 3
-    islandScale: {x: 1, y: 1, z: 1}
-    boxScale: {x: 1, y: 1}
+    scaleFactorX: 1
+    scaleFactorY: 1
     gridData:
     - type: 1
       blockColorID: 0
@@ -92,8 +92,8 @@ MonoBehaviour:
     originPosition: {x: -1, y: 4}
     width: 3
     height: 3
-    islandScale: {x: 1, y: 1, z: 1}
-    boxScale: {x: 1, y: 1}
+    scaleFactorX: 1
+    scaleFactorY: 1
     gridData:
     - type: 1
       blockColorID: 0
