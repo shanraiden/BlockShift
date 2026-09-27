@@ -75,6 +75,7 @@ public class LevelDataGizmoDrawer : MonoBehaviour
             TileType.Dynamic => new Color(1f, 0.6f, 0f, 0.8f),
             TileType.Joint => new Color(0.8f, 0.2f, 0.8f, 0.8f),
             TileType.GroundDeployer => new Color(0.4f, 0.7f, 0.1f, 0.8f),
+            TileType.Link => new Color(1f, 0.5f, 0.2f, 0.8f),
             _ => Color.white
         };
     }

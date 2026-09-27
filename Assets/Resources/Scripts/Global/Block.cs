@@ -24,6 +24,8 @@ public abstract class Block : MonoBehaviour
             defaultColor = spriteRenderer.color;
     }
 
+   
+
     public bool CanMoveTo(Vector2Int targetPos)
     {
         // Always query currentIsland dynamically!

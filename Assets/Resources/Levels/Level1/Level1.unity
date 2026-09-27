@@ -832,6 +832,7 @@ GameObject:
   - component: {fileID: 1121969118}
   - component: {fileID: 1121969120}
   - component: {fileID: 1121969121}
+  - component: {fileID: 1121969122}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -975,7 +976,7 @@ MonoBehaviour:
   offset: {x: 2.08, y: 0, z: -10}
   useBounds: 1
   boundaryRectTransform: {fileID: 2146955014}
-  isCameraFollowingPlayer: 1
+  isCameraFollowingPlayer: 0
 --- !u!114 &1121969121
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1022,6 +1023,47 @@ MonoBehaviour:
     cachedRenderer: {fileID: 0}
     cachedCollider: {fileID: 0}
     componentsChecked: 0
+--- !u!114 &1121969122
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1121969114}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1819a52395ad81d4e975e2ffdc001d10, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SmoothCameraPan2D
+  touchContactAction:
+    m_UseReference: 0
+    m_Action:
+      m_Name: Touch Contact
+      m_Type: 0
+      m_ExpectedControlType: 
+      m_Id: 4ae00da6-38a7-4257-8222-aebf7ed6f750
+      m_Processors: 
+      m_Interactions: 
+      m_SingletonActionBindings: []
+      m_Flags: 0
+    m_Reference: {fileID: 0}
+  touchPositionAction:
+    m_UseReference: 0
+    m_Action:
+      m_Name: Touch Position
+      m_Type: 0
+      m_ExpectedControlType: 
+      m_Id: 24e6915f-f822-4c81-8875-acc5b9d4be40
+      m_Processors: 
+      m_Interactions: 
+      m_SingletonActionBindings: []
+      m_Flags: 0
+    m_Reference: {fileID: 0}
+  panSensitivity: 1
+  smoothSpeed: 10
+  enableBounds: 0
+  minBounds: {x: -10, y: -10}
+  maxBounds: {x: 10, y: 10}
 --- !u!1 &1220535732
 GameObject:
   m_ObjectHideFlags: 0
@@ -1058,7 +1100,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LevelLoader
   currentLevel: {fileID: 11400000, guid: 0840571385de7d44688ca5c9f5bcf233, type: 2}
   multiGridManager: {fileID: 1220535737}
-  cameraController: {fileID: 0}
   gravityManager: {fileID: 1220535739}
   emptyCellPrefab: {fileID: 3770257501391260151, guid: 7fb6c4f367ce42d4882feaa693fda4ae, type: 3}
   immovablePrefab: {fileID: 3770257501391260151, guid: 632bf0d1df517144dbc34244972481ed, type: 3}
@@ -1066,6 +1107,8 @@ MonoBehaviour:
   dynamicPrefab: {fileID: 3770257501391260151, guid: 1b6df1066aa37614cb93cb770d1bb91b, type: 3}
   jointPrefab: {fileID: 3770257501391260151, guid: a597ec7c63b29e44ba6fb63de0875519, type: 3}
   groundDeployerBlockPrefab: {fileID: 3770257501391260151, guid: 300561ae75fffd348a46c46a838914ae, type: 3}
+  linkPrefab: {fileID: 0}
+  initialDeployerAmmo: 3
 --- !u!4 &1220535735
 Transform:
   m_ObjectHideFlags: 0

@@ -16,17 +16,27 @@ MonoBehaviour:
   levelName: New Level
   parMoves: 15
   islands:
-  - islandID: 2
-    originPosition: {x: 0, y: 1}
-    width: 1
-    height: 1
+  - islandID: 1
+    originPosition: {x: -2, y: -3}
+    width: 2
+    height: 3
     scaleFactorX: 1
-    scaleFactorY: 1
+    scaleFactorY: 2
     gridData:
-    - type: 6
+    - type: 1
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 3
+      blockColorID: 0
+    - type: 1
+      blockColorID: 0
+    - type: 3
+      blockColorID: 0
+    - type: 1
       blockColorID: 0
   - islandID: 2
-    originPosition: {x: 3, y: 0}
+    originPosition: {x: 0, y: -3}
     width: 2
     height: 3
     scaleFactorX: 2
@@ -45,7 +55,7 @@ MonoBehaviour:
     - type: 1
       blockColorID: 0
   - islandID: 3
-    originPosition: {x: -4, y: 0}
+    originPosition: {x: -2, y: 3}
     width: 2
     height: 3
     scaleFactorX: 1
@@ -59,37 +69,12 @@ MonoBehaviour:
       blockColorID: 0
     - type: 1
       blockColorID: 0
-    - type: 1
+    - type: 6
       blockColorID: 0
     - type: 1
       blockColorID: 0
   - islandID: 4
-    originPosition: {x: -1, y: -4}
-    width: 3
-    height: 3
-    scaleFactorX: 1
-    scaleFactorY: 1
-    gridData:
-    - type: 1
-      blockColorID: 0
-    - type: 1
-      blockColorID: 0
-    - type: 1
-      blockColorID: 0
-    - type: 1
-      blockColorID: 0
-    - type: 1
-      blockColorID: 0
-    - type: 1
-      blockColorID: 0
-    - type: 1
-      blockColorID: 0
-    - type: 1
-      blockColorID: 0
-    - type: 1
-      blockColorID: 0
-  - islandID: 5
-    originPosition: {x: -1, y: 4}
+    originPosition: {x: 3, y: 0}
     width: 3
     height: 3
     scaleFactorX: 1

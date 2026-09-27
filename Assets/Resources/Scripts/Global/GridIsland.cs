@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-public class GridIsland : MonoBehaviour
+public partial class GridIsland : MonoBehaviour
 {
     public int islandID;
     public int width;
@@ -17,7 +17,8 @@ public class GridIsland : MonoBehaviour
     private List<Block> islandBlocks = new List<Block>();
     public int scaleFactorX;
     public int scaleFactorY;
-
+    [Header("Link State")]
+    public bool isLinked = false; // Toggled by LinkerBlock bridges
     public void InitializeIsland(int id, int w, int h, Vector2Int origin, GridCell[,] initialCells, Vector2 customBoxScale = default)
     {
         islandID = id;
@@ -36,6 +37,22 @@ public class GridIsland : MonoBehaviour
             for (int y = 0; y < height; y++)
             {
                 cellGrid[x, y] = initialCells != null ? initialCells[x, y] : new GridCell(TileType.Empty);
+            }
+        }
+    }
+
+    public void SetIslandLinked(bool linkedState)
+    {
+        isLinked = linkedState;
+    }
+
+    public void highLightThisGrid(Color highLightedColor)
+    {
+        foreach(SpriteRenderer s in GetComponentsInChildren<SpriteRenderer>())
+        {
+            if(s.name.Contains("Empty"))
+            {
+               s.color = highLightedColor;
             }
         }
     }
@@ -430,4 +447,103 @@ public class GridIsland : MonoBehaviour
 
         return new Vector2Int(-1, -1);
     }
+}
+
+
+public partial class GridIsland : MonoBehaviour
+{
+    // List of islands linked to this island via LinkerBlocks
+    [Header("Linked Islands")]
+    private List<GridIsland> linkedIslands = new List<GridIsland>();
+    private Dictionary<GridIsland, LinkerBlock> linkingBlocks = new Dictionary<GridIsland, LinkerBlock>();
+
+    /// <summary>
+    /// Establishes a non-merging link between two islands.
+    /// </summary>
+    public void LinkToIsland(GridIsland otherIsland, LinkerBlock linker)
+    {
+        if (otherIsland == null || otherIsland == this) return;
+
+        if (!linkedIslands.Contains(otherIsland))
+        {
+            linkedIslands.Add(otherIsland);
+            linkingBlocks[otherIsland] = linker;
+
+            Debug.Log($"[Linker] Island {this.islandID} linked with Island {otherIsland.islandID}");
+
+            // Establish reciprocal link on the target island
+            otherIsland.LinkToIsland(this, linker);
+        }
+    }
+
+    /// <summary>
+    /// Removes link connection if a LinkerBlock is destroyed or moved away.
+    /// </summary>
+    public void UnlinkIsland(GridIsland otherIsland)
+    {
+        if (linkedIslands.Contains(otherIsland))
+        {
+            linkedIslands.Remove(otherIsland);
+            linkingBlocks.Remove(otherIsland);
+
+            otherIsland.UnlinkIsland(this);
+        }
+    }
+
+    public bool IsLinkedTo(GridIsland otherIsland)
+    {
+        return linkedIslands.Contains(otherIsland);
+    }
+
+    /// <summary>
+    /// Translates a movement intent off this island onto a linked neighbor island.
+    /// Returns true if a valid move position exists on a linked island.
+    /// </summary>
+    public bool TryGetLinkedNeighborPos(Vector2Int fromLocalPos, Vector2Int direction, out GridIsland targetIsland, out Vector2Int targetLocalPos)
+    {
+        targetIsland = null;
+        targetLocalPos = Vector2Int.zero;
+
+        Vector2Int intendedLocalPos = fromLocalPos + direction;
+
+        // If the target position is inside this island, no cross-island link move is needed
+        if (IsValidLocalPos(intendedLocalPos))
+        {
+            return false;
+        }
+
+        // Calculate world space position of intended move
+        Vector3 intendedWorldPos = GridToWorldPosition(intendedLocalPos);
+
+        // Check if any linked neighbor island contains this world position
+        foreach (GridIsland neighbor in linkedIslands)
+        {
+            if (neighbor == null) continue;
+
+            Vector2Int neighborLocalPos = neighbor.WorldToGridPosition(intendedWorldPos);
+
+            if (neighbor.IsValidLocalPos(neighborLocalPos) && !neighbor.IsCellOccupiedLocal(neighborLocalPos))
+            {
+                targetIsland = neighbor;
+                targetLocalPos = neighborLocalPos;
+                return true;
+            }
+        }
+
+        return false;
+    }
+}
+
+public partial class GridIsland : MonoBehaviour
+{
+    public float tileSize = 1.0f; // Base cell size
+
+    // Converts local grid coordinate to 2D Unity World Position
+    public Vector3 GridToWorldPosition(Vector2Int localGridPos)
+    {
+        Vector3 localPos = new Vector3(localGridPos.x * tileSize, localGridPos.y * tileSize, 0f);
+        return transform.TransformPoint(localPos);
+    }
+
+    
 }

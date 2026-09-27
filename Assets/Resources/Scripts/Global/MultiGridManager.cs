@@ -32,25 +32,68 @@ public class MultiGridManager : MonoBehaviour
         return null;
     }
 
-    // Handles transferring a block from source island to target island
-    public bool TryTransferBlockBetweenIslands(Block block, GridIsland sourceIsland, Vector2Int targetWorldPos)
+    public bool TryTransferBlockBetweenIslands(Block block, GridIsland sourceIsland, Vector3 sampleTargetWorldPos, GridIsland targetIsland)
     {
-        GridIsland targetIsland = GetIslandAtWorldPos(targetWorldPos);
+        if (targetIsland == null)
+        {
+            Debug.LogError("[Manager Fail] Target island is NULL.");
+            return false;
+        }
 
-        // No island exists at target world position
-        if (targetIsland == null) return false;
+        if (targetIsland == sourceIsland)
+        {
+            Debug.LogError("[Manager Fail] Target island is the same as Source island.");
+            return false;
+        }
 
-        Vector2Int targetLocalPos = targetIsland.WorldToLocal(targetWorldPos);
+        // --- 1. LINK STATE VALIDATION ---
+        if (!targetIsland.isLinked)
+        {
+            Debug.LogWarning($"[Manager Fail] Target Island '{targetIsland.name}' has 'isLinked = false'. Transfer blocked!");
+            return false;
+        }
 
-        // Target cell must be empty
-        if (targetIsland.IsCellOccupiedLocal(targetLocalPos)) return false;
+        // Convert sample world point to target local grid
+        Vector2Int targetLocalPos = targetIsland.WorldToGridPosition(sampleTargetWorldPos);
+        Debug.Log($"[Manager Step] Converted sample world pos {sampleTargetWorldPos} -> Target local grid pos: {targetLocalPos} on '{targetIsland.name}'");
 
-        // Source island must remain fully connected after losing this block
-        if (!sourceIsland.CanRemoveBlock(block.gridPosition)) return false;
+        // --- 2. BOUNDS VALIDATION ---
+        if (!targetIsland.IsValidLocalPos(targetLocalPos))
+        {
+            Debug.LogWarning($"[Manager Fail] Target local pos {targetLocalPos} is OUT OF BOUNDS on island '{targetIsland.name}'.");
+            return false;
+        }
 
-        // Execute Transfer
+        // --- 3. OCCUPANCY VALIDATION ---
+        if (targetIsland.IsCellOccupiedLocal(targetLocalPos))
+        {
+            Block occupant = targetIsland.GetBlockAtLocalPos(targetLocalPos);
+            string occupantName = occupant != null ? occupant.name : "Unknown";
+            Debug.LogWarning($"[Manager Fail] Cell {targetLocalPos} on island '{targetIsland.name}' is OCCUPIED by '{occupantName}'.");
+            return false;
+        }
+
+       
+
+        // --- EXECUTE TRANSFER ---
+        Debug.Log($"<color=cyan>[Manager Executing Transfer]</color> Moving '{block.name}' from '{sourceIsland.name}' ({block.gridPosition}) to '{targetIsland.name}' ({targetLocalPos})...");
+
         sourceIsland.RemoveBlock(block.gridPosition);
+
+        // Reparent and preserve world entry position
+        block.transform.SetParent(targetIsland.transform, true);
+        block.currentIsland = targetIsland;
+
+        // Adjust local scale
+        Vector3 targetBoxScale = (targetIsland.boxScale != Vector2.zero) ? (Vector3)targetIsland.boxScale : Vector3.one;
+        block.transform.localScale = new Vector3(
+            Mathf.Abs(targetBoxScale.x),
+            Mathf.Abs(targetBoxScale.y),
+            1f
+        );
+
         targetIsland.ReceiveBlock(block, targetLocalPos);
+        block.gridPosition = targetLocalPos;
 
         return true;
     }

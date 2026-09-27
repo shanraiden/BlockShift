@@ -8,7 +8,6 @@ public class LevelLoader : MonoBehaviour
 
     [Header("Scene References")]
     [SerializeField] private MultiGridManager multiGridManager;
-    [SerializeField] private CameraController cameraController;
 
     [Header("Gravity Manager")]
     [SerializeField] private GravityManager gravityManager;
@@ -20,6 +19,7 @@ public class LevelLoader : MonoBehaviour
     [SerializeField] private GameObject dynamicPrefab;                // DYN
     [SerializeField] private GameObject jointPrefab;                  // JNT
     [SerializeField] private GameObject groundDeployerBlockPrefab;    // Deployer Block
+    [SerializeField] private GameObject linkPrefab;                     // LINK
 
     [Header("Deployer Initial Ammo")]
     [SerializeField] private int initialDeployerAmmo = 3; // Default ammo for deployer blocks
@@ -150,6 +150,7 @@ public class LevelLoader : MonoBehaviour
             TileType.Dynamic => dynamicPrefab,
             TileType.Joint => jointPrefab,
             TileType.GroundDeployer => groundDeployerBlockPrefab,
+            TileType.Link => linkPrefab,
             _ => null // Ground or Empty spawns no extra block prefab
         };
     }

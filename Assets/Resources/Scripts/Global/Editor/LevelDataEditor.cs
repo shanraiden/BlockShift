@@ -31,11 +31,12 @@ public class LevelDataEditor : Editor
         DrawPaletteButton("Deployer", TileType.GroundDeployer, new Color(0.4f, 0.7f, 0.1f));
         EditorGUILayout.EndHorizontal();
 
-        // Row 2: Static, Dynamic, Joint
+        // Row 2: Static, Dynamic, Joint , LINK
         EditorGUILayout.BeginHorizontal();
         DrawPaletteButton("Static", TileType.MovableStatic, new Color(0.3f, 0.7f, 1f));
         DrawPaletteButton("Dynamic", TileType.Dynamic, new Color(1f, 0.6f, 0f));
         DrawPaletteButton("Joint", TileType.Joint, new Color(0.8f, 0.3f, 0.8f));
+        DrawPaletteButton("Link", TileType.Link, new Color(0.9f, 0.5f, 0.1f));
         EditorGUILayout.EndHorizontal();
 
         EditorGUILayout.EndVertical();
@@ -184,6 +185,7 @@ public class LevelDataEditor : Editor
             TileType.Dynamic => new Color(1f, 0.6f, 0f),
             TileType.Joint => new Color(0.8f, 0.3f, 0.8f),
             TileType.GroundDeployer => new Color(0.4f, 0.7f, 0.1f),
+            TileType.Link => new Color(0.9f, 0.5f, 0.1f),
             _ => Color.white
         };
     }
@@ -198,6 +200,7 @@ public class LevelDataEditor : Editor
             TileType.Dynamic => "DYN",
             TileType.Joint => "JNT",
             TileType.GroundDeployer => "DEP",
+            TileType.Link => "LNK",
             _ => "•"
         };
     }

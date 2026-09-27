@@ -18,6 +18,7 @@ TagManager:
   - HexNorrmal
   - switch
   - Gate
+  - EmptyBlock
   layers:
   - Default
   - TransparentFX

@@ -10,6 +10,7 @@ public enum TileType
     MovableStatic,  // Static block
     Dynamic,        // Player block
     Joint,          // Joint block
+    Link,          // Links 2 Islands together with Scale Mismatch
     GroundDeployer
 }
 

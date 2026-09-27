@@ -648,7 +648,7 @@ SpriteRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: a97c105638bdf8b4a8650670310a4cd3, type: 2}
+  - {fileID: 2100000, guid: cd8577e5ab7b8264da2b78f759ecf4d8, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -690,8 +690,8 @@ Transform:
   m_GameObject: {fileID: 907150717}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 4.38478, y: -1.4284693, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 4.88478, y: -1.4284693, z: 0}
+  m_LocalScale: {x: 1.12, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 466907164}
@@ -1058,7 +1058,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LevelLoader
   currentLevel: {fileID: 11400000, guid: cf137f3b0d1ee9f4b9f032f17bacc0cc, type: 2}
   multiGridManager: {fileID: 1220535737}
-  cameraController: {fileID: 0}
   gravityManager: {fileID: 1220535739}
   emptyCellPrefab: {fileID: 3770257501391260151, guid: 7fb6c4f367ce42d4882feaa693fda4ae, type: 3}
   immovablePrefab: {fileID: 3770257501391260151, guid: 632bf0d1df517144dbc34244972481ed, type: 3}
@@ -1066,6 +1065,8 @@ MonoBehaviour:
   dynamicPrefab: {fileID: 3770257501391260151, guid: 1b6df1066aa37614cb93cb770d1bb91b, type: 3}
   jointPrefab: {fileID: 3770257501391260151, guid: a597ec7c63b29e44ba6fb63de0875519, type: 3}
   groundDeployerBlockPrefab: {fileID: 3770257501391260151, guid: 300561ae75fffd348a46c46a838914ae, type: 3}
+  linkPrefab: {fileID: 3770257501391260151, guid: c149ed4286789fa418033916ca0ae585, type: 3}
+  initialDeployerAmmo: 10
 --- !u!4 &1220535735
 Transform:
   m_ObjectHideFlags: 0

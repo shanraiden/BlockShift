@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -99,6 +100,20 @@ public class PlayerInput : MonoBehaviour
                         selectedBlock = block;
                         startTouchWorldPos = worldPos;
                         isDragging = true;
+                    }
+
+                    // Case D: SPECIAL BLOCKS (LinkerBlock)
+
+                    if (block is LinkerBlock linkBlk)
+                    {
+                        if (linkBlk.IsLocked)
+                        {
+                            linkBlk.UnlockLink();
+                        }
+                        selectedBlock = block;
+                        startTouchWorldPos = worldPos;
+                        isDragging = true;
+
                     }
                 }
             }
@@ -201,6 +216,50 @@ public class PlayerInput : MonoBehaviour
             return;
         }
 
+        // -- SPECIAL CASE: LINKER BLOCK ---
+        if (block is LinkerBlock linkerBlock)
+        {
+
+            //We will Resolve it By Throwing The RayCAst In the Directio0n Of Movemnet
+            Vector2Int targetPos = linkerBlock.gridPosition + direction;
+            Debug.DrawLine(linkerBlock.currentIsland.GridToWorldPosition(linkerBlock.gridPosition), linkerBlock.currentIsland.GridToWorldPosition(targetPos), Color.red, 1f);
+            // A. VALID IN-BOUNDS MOVE
+            if (linkerBlock.currentIsland.CanMoveBlockLocal(linkerBlock.gridPosition, targetPos))
+            {
+                linkerBlock.currentIsland.ExecuteMoveLocal(linkerBlock.gridPosition, targetPos);
+                linkerBlock.MoveToGridPosition(targetPos);
+                if (linkerBlock.IsLocked)
+                {
+                    linkerBlock.UnlockLink();
+                }
+                StartCoroutine(PostMoveRoutine());
+            }
+            // B. OUT-OF-BOUNDS MOVE: Check for scale-mismatched island at edge
+            else
+            {
+                List<GridIsland> mismatchedIslands = linkerBlock.DetectNearbyIslands(direction);
+
+                if (mismatchedIslands.Count > 0)
+                {
+                    foreach (GridIsland island in mismatchedIslands)
+                    {
+                        Debug.Log($"[Scale Mismatch Link] Linked to Island ID: {island.islandID}");
+                        linkerBlock.currentIsland.LinkToIsland(island, linkerBlock);
+                        // LOCK THE LINKER BLOCK AND CHANGE COLOR
+                        linkerBlock.LockLink(island);
+                    }
+
+                    StartCoroutine(PostMoveRoutine());
+                }
+                else
+                {
+                    block.PlayIllegalMoveAnimation(direction);
+                }
+            }
+            return;
+        }
+
+
         // --- STANDARD CASE: REGULAR BLOCK ---
         Vector2Int currentLocalPos = block.gridPosition;
         Vector2Int targetLocalPos = currentLocalPos + direction;
@@ -221,20 +280,89 @@ public class PlayerInput : MonoBehaviour
         }
         else
         {
-            // Inter-island gap transfer logic
-            Vector2Int currentWorldPos = sourceIsland.originPosition + currentLocalPos;
-            Vector2Int targetWorldPos = currentWorldPos + direction;
+            // --- INTER-ISLAND TRANSFER CHECK WITH RAYCAST ---
 
-            if (multiGridManager.TryTransferBlockBetweenIslands(block, sourceIsland, targetWorldPos))
+            Vector2 dir2D = new Vector2(direction.x, direction.y).normalized;
+
+            // 1. Calculate Edge using Renderer/Collider bounds
+            Bounds blockBounds = block.GetComponent<Renderer>().bounds;
+            float edgeExtent = (dir2D.x != 0) ? blockBounds.extents.x : blockBounds.extents.y;
+
+            // Shift origin 0.05f outside the block's own collider to prevent self-collision
+            Vector2 blockEdgeWorld = (Vector2)blockBounds.center + (dir2D * (edgeExtent + 0.05f));
+
+            // 2. Define Raycast range and sample target point
+            float checkDistance = Mathf.Max(sourceIsland.tileSize, 0.5f);
+            Vector2 sampleTargetWorldPos = blockEdgeWorld + (dir2D * (checkDistance * 0.5f));
+
+            // --- SCENE VIEW VISUALIZATION ---
+            // Red ray shows the exact Raycast path in Scene view
+            Debug.DrawRay(blockEdgeWorld, dir2D * checkDistance, Color.red, 2.0f);
+
+            Debug.Log($"<color=cyan>[Transfer Check]</color> Initiating move for '{block.name}' in dir {direction}. " +
+                      $"Source Island: '{sourceIsland.name}' (isLinked: {sourceIsland.isLinked})");
+            Debug.Log($"[Transfer Check] Edge World Pos: {blockEdgeWorld} | Ray Distance: {checkDistance}");
+
+            // 3. Detect Target Island via RaycastAll
+            GridIsland targetIsland = null;
+            RaycastHit2D[] hits = Physics2D.RaycastAll(blockEdgeWorld, dir2D, checkDistance);
+
+            Debug.Log($"[Transfer Check] Raycast hit {hits.Length} colliders.");
+
+            foreach (var hit in hits)
             {
-                GridIsland targetIsland = block.currentIsland;
-                Vector2Int newLocalPos = targetIsland.WorldToLocal(targetWorldPos);
-                block.MoveToGridPosition(newLocalPos);
+                // Ignore self
+                if (hit.collider == null || hit.collider.gameObject == block.gameObject)
+                {
+                    Debug.Log($"  -> Ignoring self collider on '{hit.collider?.name}'");
+                    continue;
+                }
 
-                StartCoroutine(PostMoveRoutine());
+                // Check parent GridIsland script
+                GridIsland island = hit.collider.GetComponentInParent<GridIsland>();
+                if (island != null)
+                {
+                    if (island == sourceIsland)
+                    {
+                        Debug.Log($"  -> Ignoring source island collider on '{hit.collider.name}'");
+                        continue;
+                    }
+
+                    targetIsland = island;
+                    Debug.Log($"<color=green>[Transfer Check] Detected Target Island:</color> '{targetIsland.name}' via collider '{hit.collider.name}'");
+                    break;
+                }
+
+                // Fallback: Check if hit object has a Block attached to a different island
+                Block hitBlock = hit.collider.GetComponent<Block>();
+                if (hitBlock != null && hitBlock.currentIsland != null && hitBlock.currentIsland != sourceIsland)
+                {
+                    targetIsland = hitBlock.currentIsland;
+                    Debug.Log($"<color=green>[Transfer Check] Detected Target Island via hit Block:</color> '{targetIsland.name}' (Block: '{hitBlock.name}')");
+                    break;
+                }
+            }
+
+            // 4. Attempt Transfer via MultiGridManager
+            if (targetIsland != null && targetIsland != sourceIsland)
+            {
+                Debug.Log($"<color=yellow>[Transfer Check] Calling TryTransferBlockBetweenIslands...</color> Target Island: '{targetIsland.name}' (isLinked: {targetIsland.isLinked})");
+
+                if (multiGridManager.TryTransferBlockBetweenIslands(block, sourceIsland, sampleTargetWorldPos, targetIsland))
+                {
+                    Debug.Log($"<color=lime>[Transfer Success]</color> Block '{block.name}' transferred to '{targetIsland.name}' at local grid {block.gridPosition}.");
+                    block.MoveToGridPosition(block.gridPosition);
+                    StartCoroutine(PostMoveRoutine());
+                }
+                else
+                {
+                    Debug.LogWarning($"<color=red>[Transfer Rejected]</color> TryTransferBlockBetweenIslands returned FALSE.");
+                    block.PlayIllegalMoveAnimation(direction);
+                }
             }
             else
             {
+                Debug.LogWarning($"<color=orange>[Transfer Failed]</color> No valid target island detected ahead of block edge.");
                 block.PlayIllegalMoveAnimation(direction);
             }
         }
