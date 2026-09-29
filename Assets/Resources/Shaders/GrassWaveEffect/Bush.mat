@@ -34,13 +34,13 @@ Material:
     - _GradientPower: 0.32
     - _L1_Amplitude: 0.16
     - _L1_Direction: 0.63
-    - _L1_Power: 3.89
+    - _L1_Power: 0.5
     - _L1_Speed: 6.46
     - _L2_Amplitude: 0.95
-    - _L2_Direction: -1.7
-    - _L2_Power: 4.72
-    - _L2_Speed: 0.9
-    - _L2_StartHeight: 0.799
+    - _L2_Direction: 1.06
+    - _L2_Power: 3.35
+    - _L2_Speed: -0.37
+    - _L2_StartHeight: 0.331
     - _L3_Amplitude: 2.81
     - _L3_Direction: 0.16
     - _L3_Power: 2.54

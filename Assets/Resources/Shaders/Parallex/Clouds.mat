@@ -30,6 +30,8 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - _AutoScrollSpeed: 0.5
+    - _AutoScrollSpeedY: 0
     - _BaseParallax: 0.09
     - _BaseSpeed: 0.09
     - _BlurSamples: 5
@@ -45,7 +47,7 @@ Material:
     - _GlintIntensity: 2
     - _GlintThickness: 0.08
     - _InvertDirection: 0
-    - _LayerCount: 9.63
+    - _LayerCount: 14.99
     - _MotionBlurStrength: 0.02
     - _RandomSeed: 76.7
     - _ReverseSpeedOrder: 1

@@ -29,6 +29,8 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - _AutoScrollSpeed: 0
+    - _AutoScrollSpeedY: 0
     - _BaseParallax: 0.14
     - _BaseSpeed: 0.32
     - _BlurAmount: 0.027

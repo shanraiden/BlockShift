@@ -156,8 +156,9 @@ MonoBehaviour:
   spriteRenderer: {fileID: 0}
   defaultColor: {r: 1, g: 1, b: 1, a: 1}
   illegalColor: {r: 1, g: 0, b: 0, a: 1}
-  detectionRadiusMultiplier: 5.62
-  gizmoColor: {r: 0, g: 1, b: 0.5, a: 0.4}
-  defaultColor: {r: 1, g: 1, b: 1, a: 1}
+  playerLayer:
+    serializedVersion: 2
+    m_Bits: 8
+  checkSize: {x: 0.8, y: 0.8}
   lockedColor: {r: 0.2, g: 0.8, b: 1, a: 1}
   blockSpriteRenderer: {fileID: 0}

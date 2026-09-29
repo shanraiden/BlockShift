@@ -9,6 +9,10 @@ Shader "Custom/2D/CameraParallaxScrollSprite"
         _CamPosX ("Camera World X Position", Float) = 0.0
         _BaseParallax ("Base Parallax Multiplier", Range(-2.0, 2.0)) = 0.5
 
+        [Header(Autonomous Texture Movement)]
+        _AutoScrollSpeed ("Auto Scroll Speed Horizontal", Float) = 0.5
+        _AutoScrollSpeedY ("Auto Scroll Speed Vertical", Float) = 0.0
+
         [Header(Layer Settings)]
         _LayerCount ("Number of Layers/Segments", Range(1, 16)) = 4
         _SpeedMultiplier ("Parallax Scaling Per Layer", Float) = 1.2
@@ -81,6 +85,9 @@ Shader "Custom/2D/CameraParallaxScrollSprite"
             
             float _CamPosX;
             float _BaseParallax;
+            float _AutoScrollSpeed;
+            float _AutoScrollSpeedY;
+
             float _LayerCount;
             float _SpeedMultiplier;
             float _ReverseSpeedOrder;
@@ -166,16 +173,16 @@ Shader "Custom/2D/CameraParallaxScrollSprite"
                 return factor;
             }
 
-            fixed4 SampleTextureSeamless(float2 unwrappedUV, float parallaxFactor)
+            fixed4 SampleTextureSeamless(float2 unwrappedUV, float motionFactor)
             {
                 float2 dx = ddx(unwrappedUV);
                 float2 dy = ddy(unwrappedUV);
 
-                float blurOffset = parallaxFactor * _MotionBlurStrength;
+                float blurOffset = motionFactor * _MotionBlurStrength;
 
                 if (abs(blurOffset) < 0.0001)
                 {
-                    float2 wrappedUV = float2(frac(unwrappedUV.x), unwrappedUV.y);
+                    float2 wrappedUV = float2(frac(unwrappedUV.x), frac(unwrappedUV.y));
                     return tex2Dgrad(_MainTex, wrappedUV, dx, dy);
                 }
 
@@ -186,7 +193,7 @@ Shader "Custom/2D/CameraParallaxScrollSprite"
                 for (int i = 0; i < samples; i++)
                 {
                     float offset = ((float)i - ((float)(samples - 1) * 0.5)) * stepSize;
-                    float2 sampleUV = float2(frac(unwrappedUV.x + offset), unwrappedUV.y);
+                    float2 sampleUV = float2(frac(unwrappedUV.x + offset), frac(unwrappedUV.y));
                     colorSum += tex2Dgrad(_MainTex, sampleUV, dx, dy);
                 }
 
@@ -233,20 +240,28 @@ Shader "Custom/2D/CameraParallaxScrollSprite"
                 float factorA = GetSafeLayerParallax(layerA);
                 float factorB = GetSafeLayerParallax(layerB);
 
-                // Scrolling UVs driven directly by Camera X Position
-                float2 continuousUVA = float2(uv.x + (_CamPosX * factorA), uv.y);
-                float2 continuousUVB = float2(uv.x + (_CamPosX * factorB), uv.y);
+                // Autonomous time-based scroll offsets
+                float autoScrollX = _Time.y * _AutoScrollSpeed;
+                float autoScrollY = _Time.y * _AutoScrollSpeedY;
 
-                fixed4 colA = SampleTextureSeamless(continuousUVA, factorA);
-                fixed4 colB = SampleTextureSeamless(continuousUVB, factorB);
+                // Combined UVs: Camera Tracking + Autonomous Layer Movement
+                float2 continuousUVA = float2(uv.x + (_CamPosX * factorA) + (autoScrollX * factorA), uv.y + autoScrollY);
+                float2 continuousUVB = float2(uv.x + (_CamPosX * factorB) + (autoScrollX * factorB), uv.y + autoScrollY);
+
+                // Motion Blur accounts for both camera speed and layer speed
+                float effectiveSpeedA = factorA * (_AutoScrollSpeed + 1.0);
+                float effectiveSpeedB = factorB * (_AutoScrollSpeed + 1.0);
+
+                fixed4 colA = SampleTextureSeamless(continuousUVA, effectiveSpeedA);
+                fixed4 colB = SampleTextureSeamless(continuousUVB, effectiveSpeedB);
 
                 float feather = clamp(_EdgeFeather, 0.01, 0.49);
                 float blendFactor = smoothstep(1.0 - feather, 1.0, fracPos);
                 fixed4 splitLayerColor = lerp(colA, colB, blendFactor);
 
-                // Unsplit Base layer UV driven by base camera position
-                float2 continuousBaseUV = float2(uv.x + (_CamPosX * _BaseParallax), uv.y);
-                fixed4 baseColor = SampleTextureSeamless(continuousBaseUV, _BaseParallax);
+                // Base Layer UV (incorporating base camera position and base auto-scroll)
+                float2 continuousBaseUV = float2(uv.x + (_CamPosX * _BaseParallax) + (autoScrollX * _BaseParallax), uv.y + autoScrollY);
+                fixed4 baseColor = SampleTextureSeamless(continuousBaseUV, _BaseParallax * (_AutoScrollSpeed + 1.0));
 
                 fixed4 finalColor = lerp(baseColor, splitLayerColor, zoneMask);
 

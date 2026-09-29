@@ -266,7 +266,7 @@ public class PlayerInput : MonoBehaviour
 
         if (sourceIsland.IsValidLocalPos(targetLocalPos))
         {
-            if (sourceIsland.CanMoveBlockLocal(currentLocalPos, targetLocalPos))
+            if (sourceIsland.CanMoveBlockLocal(currentLocalPos, targetLocalPos)&& !block.IsBlockHighlightedAtTarget(targetLocalPos))
             {
                 sourceIsland.ExecuteMoveLocal(currentLocalPos, targetLocalPos);
                 block.MoveToGridPosition(targetLocalPos);
@@ -380,4 +380,6 @@ public class PlayerInput : MonoBehaviour
 
         isProcessingTurn = false;
     }
+
+
 }

@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &7604270806684188186
+--- !u!1 &4841852241331811949
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,11 +8,12 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 6149453533489047774}
-  - component: {fileID: 419566267806994306}
-  - component: {fileID: 6674223176651435403}
-  - component: {fileID: 753525285585707730}
-  - component: {fileID: 8506956994599493644}
+  - component: {fileID: 7485737179694762700}
+  - component: {fileID: 823185197202224141}
+  - component: {fileID: 4466281607215244396}
+  - component: {fileID: 3979992331125569094}
+  - component: {fileID: 6287820853106348736}
+  - component: {fileID: 130549839182003866}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -20,32 +21,32 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &6149453533489047774
+--- !u!4 &7485737179694762700
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7604270806684188186}
+  m_GameObject: {fileID: 4841852241331811949}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -10}
+  m_LocalPosition: {x: 0, y: -1.75, z: -10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!20 &419566267806994306
+--- !u!20 &823185197202224141
 Camera:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7604270806684188186}
+  m_GameObject: {fileID: 4841852241331811949}
   m_Enabled: 1
   serializedVersion: 2
-  m_ClearFlags: 2
-  m_BackGroundColor: {r: 0, g: 0, b: 0, a: 0}
+  m_ClearFlags: 1
+  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -68,9 +69,9 @@ Camera:
     height: 1
   near clip plane: 0.3
   far clip plane: 1000
-  field of view: 34
+  field of view: 60
   orthographic: 1
-  orthographic size: 20
+  orthographic size: 11
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -78,34 +79,34 @@ Camera:
   m_RenderingPath: -1
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
-  m_TargetEye: 0
+  m_TargetEye: 3
   m_HDR: 1
-  m_AllowMSAA: 0
+  m_AllowMSAA: 1
   m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
-  m_OcclusionCulling: 0
+  m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
---- !u!81 &6674223176651435403
+--- !u!81 &4466281607215244396
 AudioListener:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7604270806684188186}
+  m_GameObject: {fileID: 4841852241331811949}
   m_Enabled: 1
---- !u!114 &753525285585707730
+--- !u!114 &3979992331125569094
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7604270806684188186}
+  m_GameObject: {fileID: 4841852241331811949}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalCameraData
   m_RenderShadows: 1
   m_RequiresDepthTextureOption: 2
   m_RequiresOpaqueTextureOption: 2
@@ -138,22 +139,111 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
---- !u!114 &8506956994599493644
+--- !u!114 &6287820853106348736
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7604270806684188186}
+  m_GameObject: {fileID: 4841852241331811949}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3a0564565db5b874cb1fb240d4d8accd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CameraConfig
-  sceneWidth: 10
-  worldPosFollow: {x: 0, y: 0}
-  smoothSpeed: 0.125
-  offset: {x: 0, y: 0, z: -10}
+  sceneWidth: 9
+  worldPosFollow: {fileID: 0}
+  followSmoothTime: 0.2
+  offset: {x: 2.08, y: 0, z: -10}
+  isCameraFollowingPlayer: 1
+  touchContactAction:
+    m_UseReference: 0
+    m_Action:
+      m_Name: Touch Contact
+      m_Type: 0
+      m_ExpectedControlType: 
+      m_Id: c327f7ba-24a4-4c7b-bfe1-c9d15bee527a
+      m_Processors: 
+      m_Interactions: 
+      m_SingletonActionBindings:
+      - m_Name: 
+        m_Id: 9973493d-42db-49b1-9df5-58f200a6786c
+        m_Path: <Touchscreen>/touch1/press
+        m_Interactions: 
+        m_Processors: 
+        m_Groups: 
+        m_Action: Touch Contact
+        m_Flags: 0
+      m_Flags: 0
+    m_Reference: {fileID: 0}
+  touchPositionAction:
+    m_UseReference: 0
+    m_Action:
+      m_Name: Touch Position
+      m_Type: 0
+      m_ExpectedControlType: 
+      m_Id: 767c6c9c-e2cf-414c-969e-5918edf73968
+      m_Processors: 
+      m_Interactions: 
+      m_SingletonActionBindings:
+      - m_Name: 
+        m_Id: 4e5414e4-dccc-4556-b9a0-7eb830cdd670
+        m_Path: <Touchscreen>/touch1/position
+        m_Interactions: 
+        m_Processors: 
+        m_Groups: 
+        m_Action: Touch Position
+        m_Flags: 0
+      m_Flags: 0
+    m_Reference: {fileID: 0}
+  panSensitivity: 1
+  enableInertia: 1
+  decelerationRate: 0.92
   useBounds: 1
   boundaryRectTransform: {fileID: 0}
-  isCameraFollowingPlayer: 1
+--- !u!114 &130549839182003866
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4841852241331811949}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 721b625669196b245a62843cd530f56c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ParallaxController
+  layers:
+  - layerObject: {fileID: 0}
+    horizontalStrength: 1
+    verticalStrength: 0
+    useHorizontalBounds: 0
+    xWorldMinMax: {x: 0, y: 0}
+    useVerticalBounds: 0
+    yWorldMinMax: {x: 0, y: 0}
+    parallaxOnlyWhenVisible: 0
+    cachedRenderer: {fileID: 0}
+    cachedCollider: {fileID: 0}
+    componentsChecked: 0
+  - layerObject: {fileID: 0}
+    horizontalStrength: 0.8
+    verticalStrength: 0
+    useHorizontalBounds: 0
+    xWorldMinMax: {x: 0, y: 0}
+    useVerticalBounds: 0
+    yWorldMinMax: {x: 0, y: 0}
+    parallaxOnlyWhenVisible: 0
+    cachedRenderer: {fileID: 0}
+    cachedCollider: {fileID: 0}
+    componentsChecked: 0
+  - layerObject: {fileID: 0}
+    horizontalStrength: 0.71
+    verticalStrength: 0
+    useHorizontalBounds: 0
+    xWorldMinMax: {x: 0, y: 0}
+    useVerticalBounds: 0
+    yWorldMinMax: {x: 0, y: 0}
+    parallaxOnlyWhenVisible: 0
+    cachedRenderer: {fileID: 0}
+    cachedCollider: {fileID: 0}
+    componentsChecked: 0

@@ -6,7 +6,6 @@ public class ImmovableBlock : Block
 {
     [Header("Visual Feedback References")]
     [SerializeField] private Color normalColor = Color.white;
-    [SerializeField] private Color highlightColor = Color.yellow;
     [SerializeField] private Color blinkColor = Color.cyan;
 
     private Coroutine blinkCoroutine;

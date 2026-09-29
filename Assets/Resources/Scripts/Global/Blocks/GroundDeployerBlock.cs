@@ -19,6 +19,7 @@ public class GroundDeployerBlock : Block
     {
         if (currentIsland == null) return false;
 
+
         GridIsland targetIsland = currentIsland;
 
         // 1. Calculate intended target local position
@@ -27,7 +28,10 @@ public class GroundDeployerBlock : Block
         // 2. Pre-Check: Calculate intended target world position BEFORE expanding grid
         Vector3 intendedLocalSpacePos = targetIsland.GridToLocalPosition(intendedTargetPos, 0f);
         Vector3 intendedWorldPos = targetIsland.transform.TransformPoint(intendedLocalSpacePos);
-
+         if (IsBlockHighlightedAtTarget(intendedTargetPos))
+        {
+            return false;
+        }
         // 3. Check if the target space overlaps with a scale-mismatched island
         if (IsTargetSpaceBlockedByMismatchedIsland(targetIsland, intendedWorldPos))
         {
@@ -79,6 +83,7 @@ public class GroundDeployerBlock : Block
         this.currentIsland = targetIsland;
         targetIsland.RegisterBlock(this, finalTargetPos);
 
+       
         this.MoveToGridPosition(finalTargetPos);
 
         return true;

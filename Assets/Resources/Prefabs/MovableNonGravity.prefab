@@ -156,3 +156,7 @@ MonoBehaviour:
   spriteRenderer: {fileID: 0}
   defaultColor: {r: 1, g: 1, b: 1, a: 1}
   illegalColor: {r: 1, g: 0, b: 0, a: 1}
+  playerLayer:
+    serializedVersion: 2
+    m_Bits: 8
+  checkSize: {x: 4, y: 4}

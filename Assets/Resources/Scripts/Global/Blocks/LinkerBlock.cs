@@ -5,7 +5,6 @@ public class LinkerBlock : Block
 {
 
     [Header("Lock State Settings")]
-    [SerializeField] private new Color defaultColor = Color.white;
     [SerializeField] private Color lockedColor = new Color(0.2f, 0.8f, 1f); // Highlight color when linked & locked
     [SerializeField] private SpriteRenderer blockSpriteRenderer;
 
