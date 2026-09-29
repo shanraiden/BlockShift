@@ -23,7 +23,7 @@ public class Goal : MonoBehaviour
         // Auto-find LevelCompleteUI in scene if not manually assigned in Inspector
         if (levelCompleteUI == null)
         {
-            levelCompleteUI = FindFirstObjectByType<LevelCompleteUI>();
+            levelCompleteUI = FindAnyObjectByType<LevelCompleteUI>();
         }
     }
 
@@ -65,23 +65,23 @@ public class Goal : MonoBehaviour
             goalReachedSFX.Play();
         }
 
-        // Optionally disable player movement/control on reaching goal
-        if (disablePlayerOnGoal && playerInstance != null)
-        {
-            // Disable player control script or physics
-            if (playerInstance.TryGetComponent<Rigidbody2D>(out var rb2d))
-            {
-                rb2d.linearVelocity = Vector2.zero;
-                rb2d.simulated = false;
-            }
+        //// Optionally disable player movement/control on reaching goal
+        //if (disablePlayerOnGoal && playerInstance != null)
+        //{
+        //    // Disable player control script or physics
+        //    if (playerInstance.TryGetComponent<Rigidbody2D>(out var rb2d))
+        //    {
+        //       rb2d.linearVelocity = Vector2.zero;
+        //      //  rb2d.simulated = false;
+        //    }
 
-            var playerScripts = playerInstance.GetComponents<MonoBehaviour>();
-            foreach (var script in playerScripts)
-            {
-                // Disables user input handling scripts attached to player
-                script.enabled = false;
-            }
-        }
+        //    var playerScripts = playerInstance.GetComponents<MonoBehaviour>();
+        //    foreach (var script in playerScripts)
+        //    {
+        //        // Disables user input handling scripts attached to player
+        //        script.enabled = false;
+        //    }
+        //}
 
         // Call the UI sequence
         if (levelCompleteUI != null)

@@ -51,7 +51,7 @@ public class ParallaxController : MonoBehaviour
         }
     }
 
-    void LateUpdate()
+    void FixedUpdate()
     {
         Vector3 currentCameraPosition = transform.position;
 
