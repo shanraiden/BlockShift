@@ -44,24 +44,50 @@ public class LevelDataGizmoDrawer : MonoBehaviour
                 for (int y = 0; y < island.height; y++)
                 {
                     GridCell cell = island.GetCell(x, y);
+
+                    // Fixed missing multiplication operators (*)
                     Vector3 cellPos = new Vector3(
                         island.originPosition.x + (x * scaleX),
                         island.originPosition.y + (y * scaleY),
                         0
                     );
 
-                    // Cell Outline
-                    Gizmos.color = new Color(1f, 1f, 1f, 0.15f);
-                    Gizmos.DrawWireCube(cellPos, new Vector3(0.95f * scaleX, 0.95f * scaleY, 0.1f));
-
-                    // Fill cell based on Block Subclass / Tile Type
-                    if (cell.type != TileType.Empty)
+                    if (cell.type == TileType.MovableStaticTriR || cell.type == TileType.MovableStaticTriL)
                     {
-                        Gizmos.color = GetTileGizmoColor(cell.type);
-                        Gizmos.DrawCube(cellPos, new Vector3(0.85f * scaleX, 0.85f * scaleY, 0.1f));
+                        // --- DRAW TRIANGLE FOR MovableStaticTri ---
+
+                        // Define triangle vertices (pointing up inside the cell bounds)
+
+                        Vector3 top = cellPos + new Vector3((cell.type == TileType.MovableStaticTriR)? 1f : -1f, 0.475f * scaleY, 0f);
+                        Vector3 bottomLeft = cellPos + new Vector3(-0.475f * scaleX, -0.475f * scaleY, 0f);
+                        Vector3 bottomRight = cellPos + new Vector3(0.475f * scaleX, -0.475f * scaleY, 0f);
+
+                        // Triangle Outline
+                        Gizmos.color = new Color(1f, 1f, 1f, 0.25f);
+                        Gizmos.DrawLine(top, bottomLeft);
+                        Gizmos.DrawLine(bottomLeft, bottomRight);
+                        Gizmos.DrawLine(bottomRight, top);
+
+                        
+                    }
+                    else
+                    {
+                        // --- STANDARD BOX DRAWING FOR OTHER TILES ---
+
+                        // Cell Outline
+                        Gizmos.color = new Color(1f, 1f, 1f, 0.15f);
+                        Gizmos.DrawWireCube(cellPos, new Vector3(0.95f * scaleX, 0.95f * scaleY, 0.1f));
+
+                        // Fill cell based on Block Subclass / Tile Type
+                        if (cell.type != TileType.Empty)
+                        {
+                            Gizmos.color = GetTileGizmoColor(cell.type);
+                            Gizmos.DrawCube(cellPos, new Vector3(0.85f * scaleX, 0.85f * scaleY, 0.1f));
+                        }
                     }
                 }
             }
+
         }
     }
 
@@ -76,6 +102,8 @@ public class LevelDataGizmoDrawer : MonoBehaviour
             TileType.Joint => new Color(0.8f, 0.2f, 0.8f, 0.8f),
             TileType.GroundDeployer => new Color(0.4f, 0.7f, 0.1f, 0.8f),
             TileType.Link => new Color(1f, 0.5f, 0.2f, 0.8f),
+            TileType.MovableStaticTriR =>    new Color(1f,0.2f,0.3f),
+            TileType.MovableStaticTriL => new Color(1f, 0.2f, 0.3f),
             _ => Color.white
         };
     }

@@ -10,9 +10,13 @@ public class CameraConfig : MonoBehaviour
     [Header("Follow Settings")]
     public Transform worldPosFollow;          // Drag your player here
     [Tooltip("Time in seconds for camera to reach player. Smaller value = faster/snappier, Larger value = smoother/slower.")]
-    public float followSmoothTime = 0.2f; 
-    public Vector3 offset = new Vector3(0, 0, -10);
-    public bool isCameraFollowingPlayer = true;
+    public float followSmoothTime = 0.2f;
+    [Header("Offset Settings")]
+    [Tooltip("Offset when player is on the LEFT side of the scene center.")]
+    public Vector3 leftSideOffset = new Vector3(-2f, 0f, -10f);
+    private Vector3 currentOffset;
+    [Tooltip("Offset when player is on the RIGHT side of the scene center.")]
+    public Vector3 rightSideOffset = new Vector3(2f, 0f, -10f); public bool isCameraFollowingPlayer = true;
 
     [Header("Pan / Drag Settings (New Input System)")]
     [Tooltip("Reference to an Input Action for screen contact/press (e.g. Pointer/press or Touchscreen/PrimaryTouch/press)")]
@@ -47,11 +51,15 @@ public class CameraConfig : MonoBehaviour
     private Vector3 currentSmoothDampVelocity; // Used by SmoothDamp
     private bool isDragging = false;
 
+    [Header("Target & Center Reference")]
+    [SerializeField] private Transform playerTarget;
+    [SerializeField] private float offsetTransitionSpeed = 3f;
+    private Rigidbody2D playerRb;
     private void Awake()
     {
         targetCamera = GetComponent<Camera>();
         targetPosition = transform.position;
-
+        playerRb = playerTarget.GetComponent<Rigidbody2D>();
         FetchWorldBoundsFromRect();
     }
 
@@ -77,6 +85,36 @@ public class CameraConfig : MonoBehaviour
 
         touchContactAction.action?.Disable();
         touchPositionAction.action?.Disable();
+    }
+    /// <summary>
+    /// Checks player position relative to scene center and transitions the offset.
+    /// </summary>
+    public void UpdateCameraOffset()
+    {
+        if (playerRb == null) return;
+
+        float vx = playerRb.linearVelocityX;
+        Vector3 targetOffset;
+
+        // Check velocity against threshold
+        if (Mathf.Abs(vx) <= 0.01)
+        {
+            // Player is stationary -> revert to centered offset
+            targetOffset = new Vector3(0,0,0);
+        }
+        else if (vx < 0)
+        {
+            // Moving Left
+            targetOffset = leftSideOffset;
+        }
+        else
+        {
+            // Moving Right
+            targetOffset = rightSideOffset;
+        }
+
+        // Smoothly interpolate current offset towards target offset
+        currentOffset = Vector3.Lerp(currentOffset, targetOffset, offsetTransitionSpeed * Time.deltaTime);
     }
 
     public void FetchWorldBoundsFromRect()
@@ -177,7 +215,8 @@ public class CameraConfig : MonoBehaviour
             if (isCameraFollowingPlayer && worldPosFollow != null)
             {
                 // Smoothly ease back towards player using SmoothDamp
-                Vector3 desiredPos = worldPosFollow.position + offset;
+                UpdateCameraOffset();
+                Vector3 desiredPos = worldPosFollow.position + currentOffset;
 
                 if (useBounds)
                 {

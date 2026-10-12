@@ -65,6 +65,7 @@ public class SmoothCameraPan2D : MonoBehaviour
 
         // Record where in the world space the drag started
         dragOriginWorld = GetWorldPoint(screenPos);
+
     }
 
     private void OnDragEnd(InputAction.CallbackContext context)

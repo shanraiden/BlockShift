@@ -20,6 +20,8 @@ public class LevelLoader : MonoBehaviour
     [SerializeField] private GameObject jointPrefab;                  // JNT
     [SerializeField] private GameObject groundDeployerBlockPrefab;    // Deployer Block
     [SerializeField] private GameObject linkPrefab;                     // LINK
+    [SerializeField] private GameObject movableStaticPrefabTriR;
+    [SerializeField] private GameObject movableStaticPrefabTriL;
 
     [Header("Deployer Initial Ammo")]
     [SerializeField] private int initialDeployerAmmo = 3; // Default ammo for deployer blocks
@@ -151,6 +153,8 @@ public class LevelLoader : MonoBehaviour
             TileType.Joint => jointPrefab,
             TileType.GroundDeployer => groundDeployerBlockPrefab,
             TileType.Link => linkPrefab,
+            TileType.MovableStaticTriR => movableStaticPrefabTriR,
+            TileType.MovableStaticTriL => movableStaticPrefabTriL,
             _ => null // Ground or Empty spawns no extra block prefab
         };
     }

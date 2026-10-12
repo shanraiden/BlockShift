@@ -15,7 +15,7 @@ public class LevelCompleteUI : MonoBehaviour
     [SerializeField] private Button nextLevelButton;
     [SerializeField] private Button restartButton;
     [SerializeField] private Button quitButton;
-
+    [SerializeField] private Button followCam;
     [Header("Animation Timings")]
     [SerializeField] private float fadeDuration = 1.5f;
     [SerializeField] private float textDelay = 0.5f;
@@ -41,6 +41,9 @@ public class LevelCompleteUI : MonoBehaviour
         if (nextLevelButton != null) nextLevelButton.onClick.AddListener(OnNextLevelClicked);
         if (restartButton != null) restartButton.onClick.AddListener(OnRestartClicked);
         if (quitButton != null) quitButton.onClick.AddListener(OnQuitClicked);
+        if (followCam != null) followCam.onClick.AddListener(OnFollowCamClicked);
+
+
     }
 
     /// <summary>
@@ -116,6 +119,17 @@ public class LevelCompleteUI : MonoBehaviour
             Debug.Log("[LevelCompleteUI] No next scene in Build Settings! Reloading current scene.");
             SceneManager.LoadScene(0); // Loop back to start or main menu
         }
+    }
+
+    private void OnFollowCamClicked()
+    {
+        TextMeshProUGUI followCamText = followCam.GetComponentInChildren<TextMeshProUGUI>();
+        followCamText.text = (followCamText.text.Contains("OFF"))? "Follow Player: ON" : "Follow Player: OFF";
+
+        if (followCamText.text == "Follow Player: ON")
+        { Camera.main.GetComponent<CameraConfig>().isCameraFollowingPlayer = true; }
+        else
+        { Camera.main.GetComponent<CameraConfig>().isCameraFollowingPlayer = false; }
     }
 
     private void OnRestartClicked()

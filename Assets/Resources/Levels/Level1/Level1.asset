@@ -17,7 +17,7 @@ MonoBehaviour:
   parMoves: 15
   islands:
   - islandID: 1
-    originPosition: {x: 2, y: -4}
+    originPosition: {x: 5, y: -4}
     width: 1
     height: 2
     scaleFactorX: 4

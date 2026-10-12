@@ -24,11 +24,14 @@ public class LevelDataEditor : Editor
         EditorGUILayout.LabelField("Block Paint Tool", EditorStyles.boldLabel);
         EditorGUILayout.LabelField("Select a block type below, then click any grid button to paint (Right-Click to Erase):", EditorStyles.miniLabel);
 
-        // Row 1: Void, Ground, Immovable
+        // Row 1: Void, Ground, Immovable , StaticTri
         EditorGUILayout.BeginHorizontal();
         DrawPaletteButton("Ground", TileType.Ground, new Color(0.6f, 0.6f, 0.6f));
         DrawPaletteButton("Immovable", TileType.Immovable, new Color(0.4f, 0.4f, 0.4f));
         DrawPaletteButton("Deployer", TileType.GroundDeployer, new Color(0.4f, 0.7f, 0.1f));
+        DrawPaletteButton("StaticTriR", TileType.MovableStaticTriR, new Color(1f, 0.7f, 0.1f));
+        DrawPaletteButton("StaticTriL", TileType.MovableStaticTriL, new Color(1f, 0.7f, 0.1f));
+
         EditorGUILayout.EndHorizontal();
 
         // Row 2: Static, Dynamic, Joint , LINK
@@ -186,6 +189,8 @@ public class LevelDataEditor : Editor
             TileType.Joint => new Color(0.8f, 0.3f, 0.8f),
             TileType.GroundDeployer => new Color(0.4f, 0.7f, 0.1f),
             TileType.Link => new Color(0.9f, 0.5f, 0.1f),
+            TileType.MovableStaticTriR => new Color(1f, 0.2f, 0.3f),
+            TileType.MovableStaticTriL => new Color(1f, 0.2f, 0.3f),
             _ => Color.white
         };
     }
@@ -201,6 +206,8 @@ public class LevelDataEditor : Editor
             TileType.Joint => "JNT",
             TileType.GroundDeployer => "DEP",
             TileType.Link => "LNK",
+            TileType.MovableStaticTriL => "MovTriL",
+            TileType.MovableStaticTriR => "MovTriR",
             _ => "•"
         };
     }

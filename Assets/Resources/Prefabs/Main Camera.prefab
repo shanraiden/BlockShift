@@ -45,8 +45,8 @@ Camera:
   m_GameObject: {fileID: 4841852241331811949}
   m_Enabled: 1
   serializedVersion: 2
-  m_ClearFlags: 1
-  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
+  m_ClearFlags: 2
+  m_BackGroundColor: {r: 0, g: 0, b: 0, a: 0}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -151,10 +151,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a0564565db5b874cb1fb240d4d8accd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CameraConfig
-  sceneWidth: 9
+  sceneWidth: 11
   worldPosFollow: {fileID: 0}
   followSmoothTime: 0.2
-  offset: {x: 2.08, y: 0, z: -10}
+  leftSideOffset: {x: -2, y: 0, z: -10}
+  rightSideOffset: {x: 2, y: 0, z: -10}
   isCameraFollowingPlayer: 1
   touchContactAction:
     m_UseReference: 0
@@ -201,6 +202,8 @@ MonoBehaviour:
   decelerationRate: 0.92
   useBounds: 1
   boundaryRectTransform: {fileID: 0}
+  playerTarget: {fileID: 0}
+  offsetTransitionSpeed: 3
 --- !u!114 &130549839182003866
 MonoBehaviour:
   m_ObjectHideFlags: 0

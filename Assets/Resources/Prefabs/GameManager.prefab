@@ -1,0 +1,133 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &3610159276576041526
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8027852897697273406}
+  - component: {fileID: 2906752727789316050}
+  - component: {fileID: 2866631349681997607}
+  - component: {fileID: 6729086027248124255}
+  - component: {fileID: 618794827894352596}
+  - component: {fileID: 6374456981459045681}
+  - component: {fileID: 6122965599769087940}
+  m_Layer: 0
+  m_Name: GameManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8027852897697273406
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3610159276576041526}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1.25, y: -1.75, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2906752727789316050
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3610159276576041526}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0ccb4814c23dc7469e5b0e6c7c3c85a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LevelLoader
+  currentLevel: {fileID: 0}
+  multiGridManager: {fileID: 6729086027248124255}
+  gravityManager: {fileID: 6374456981459045681}
+  emptyCellPrefab: {fileID: 3770257501391260151, guid: 7fb6c4f367ce42d4882feaa693fda4ae, type: 3}
+  immovablePrefab: {fileID: 3770257501391260151, guid: 632bf0d1df517144dbc34244972481ed, type: 3}
+  movableStaticPrefab: {fileID: 3770257501391260151, guid: ab1d8faafdab8214bae91bf955689285, type: 3}
+  dynamicPrefab: {fileID: 3770257501391260151, guid: 1b6df1066aa37614cb93cb770d1bb91b, type: 3}
+  jointPrefab: {fileID: 3770257501391260151, guid: a597ec7c63b29e44ba6fb63de0875519, type: 3}
+  groundDeployerBlockPrefab: {fileID: 3770257501391260151, guid: 300561ae75fffd348a46c46a838914ae, type: 3}
+  linkPrefab: {fileID: 3770257501391260151, guid: c149ed4286789fa418033916ca0ae585, type: 3}
+  movableStaticPrefabTriR: {fileID: 3770257501391260151, guid: a508ffa7135c38443952332e6041cab9, type: 3}
+  movableStaticPrefabTriL: {fileID: 3770257501391260151, guid: f71d5767edfb72b47adc0513f9dd95d2, type: 3}
+  initialDeployerAmmo: 3
+--- !u!114 &2866631349681997607
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3610159276576041526}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 80f884dda87eb274894aa912b63fe36c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerInput
+  mainCamera: {fileID: 0}
+  multiGridManager: {fileID: 6729086027248124255}
+  gravityManager: {fileID: 6374456981459045681}
+  minDragDistance: 0.2
+--- !u!114 &6729086027248124255
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3610159276576041526}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a38eef2de15ad6249ade836383c22a31, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MultiGridManager
+--- !u!114 &618794827894352596
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3610159276576041526}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e365172d371e6a646973119d1d9c5ec8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LevelDataGizmoDrawer
+  levelData: {fileID: 0}
+  showGizmos: 1
+  showTileLabels: 1
+--- !u!114 &6374456981459045681
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3610159276576041526}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ac05340172d224643a48f0e8697e748d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GravityManager
+  fallStepDuration: 0.15
+  fallEase: 5
+--- !u!114 &6122965599769087940
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3610159276576041526}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7513b744b056f574486a02541c6ea70f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DynamicFpsManager
