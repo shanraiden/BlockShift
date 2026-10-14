@@ -33,10 +33,24 @@ public class PlayerMovement : MonoBehaviour
     private float hoverTimer;
     public float hitOffset;
     private int WaterLayer;
+
+    [Header("Animation Clips")]
+    [SerializeField] private AnimationClip idleClip;
+    [SerializeField] private AnimationClip runClip;
+    private Animator animator;
+    [Header("Status (Read-Only)")]
+    [SerializeField] private bool isStopped;
+    // Animation State
+    private AnimationClip currentClip;
+
+    // Hash references for Animator Controller parameters
+    private static readonly int IsMovingHash = Animator.StringToHash("isMoving");
+    private static readonly int IsStoppedHash = Animator.StringToHash("isStopped");
+    private static readonly int SpeedHash = Animator.StringToHash("speed");
     private void Awake()
     {
         WaterLayer = LayerMask.NameToLayer("Water");
-
+        animator = GetComponent<Animator>();
     }
 
     private void OnEnable()
@@ -47,7 +61,31 @@ public class PlayerMovement : MonoBehaviour
         spriteRenderer = GetComponent<SpriteRenderer>();
         controlAreaRect = GameObject.Find("PlayerControlArea").GetComponent<RectTransform>();
     }
+    private void UpdateAnimation()
+    {
+        if (animator == null) return;
 
+        bool isMoving = !isStopped;
+
+        if (HasParameter(IsMovingHash)) animator.SetBool(IsMovingHash, isMoving);
+        if (HasParameter(IsStoppedHash)) animator.SetBool(IsStoppedHash, isStopped);
+        if (HasParameter(SpeedHash)) animator.SetFloat(SpeedHash, isMoving ? moveSpeed : 0f);
+
+        AnimationClip targetClip = isStopped ? idleClip : runClip;
+        if (targetClip != null && currentClip != targetClip)
+        {
+            currentClip = targetClip;
+            animator.Play(currentClip.name);
+        }
+    }
+    private bool HasParameter(int paramHash)
+    {
+        foreach (AnimatorControllerParameter param in animator.parameters)
+        {
+            if (param.nameHash == paramHash) return true;
+        }
+        return false;
+    }
 
     public void velocityDirectionSetLeft()
     {
@@ -125,6 +163,8 @@ public class PlayerMovement : MonoBehaviour
 
     private void Update()
     {
+        isStopped = (playerMovingDirection == 0) ? true : false;
+        UpdateAnimation();
         if (playerMovingDirection == 0) return;
                 HandleDirectionalVisuals(playerMovingDirection);
         
@@ -152,6 +192,7 @@ public class PlayerMovement : MonoBehaviour
         if (PlayerRigidBody == null) return;
 
         // Apply constant left/right velocity while retaining vertical (y) momentum
+       
         PlayerRigidBody.linearVelocity = new Vector2(playerMovingDirection*moveSpeed, PlayerRigidBody.linearVelocity.y);
     }
 

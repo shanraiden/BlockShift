@@ -205,5 +205,8 @@ MonoBehaviour:
   hoverStrength: 1.55
   groundLayer:
     serializedVersion: 2
-    m_Bits: 64
+    m_Bits: 2112
   hitOffset: 0
+  idleClip: {fileID: 7400000, guid: 0a03fce14e3ec56418e8ea452bf3d3d9, type: 2}
+  runClip: {fileID: 7400000, guid: e091c057eb2f02f4fb64c60e7f0d5118, type: 2}
+  isStopped: 0
