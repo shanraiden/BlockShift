@@ -129,7 +129,7 @@ Rigidbody2D:
   m_Simulated: 1
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
-  m_Mass: 1
+  m_Mass: 2.32
   m_LinearDamping: 0
   m_AngularDamping: 0.05
   m_GravityScale: 1
@@ -202,7 +202,7 @@ MonoBehaviour:
   hoverAmplitude: 0.13
   hoverFrequency: 4.53
   maxDetectionRange: 12.73
-  hoverStrength: 1.55
+  hoverStrength: 2.96
   groundLayer:
     serializedVersion: 2
     m_Bits: 2112
