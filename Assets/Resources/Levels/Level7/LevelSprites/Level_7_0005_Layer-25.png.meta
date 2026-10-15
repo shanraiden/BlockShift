@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: b9fd0815c1a20f649b57b22beb0a038a
+guid: 749225df1c9769e4bbbfd8045c81f211
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -3692358380399085298
-    second: _0006_Layer-1_0
+      213: -9135951952130066092
+    second: Level_7_0005_Layer-25_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -46,12 +46,12 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 2
+  spriteMode: 1
   spriteExtrude: 1
-  spriteMeshType: 1
+  spriteMeshType: 0
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 100
+  spritePixelsToUnits: 50
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -72,9 +72,9 @@ TextureImporter:
   platformSettings:
   - serializedVersion: 4
     buildTarget: DefaultTexturePlatform
-    maxTextureSize: 2048
+    maxTextureSize: 4096
     resizeAlgorithm: 0
-    textureFormat: -1
+    textureFormat: 4
     textureCompression: 1
     compressionQuality: 50
     crunchedCompression: 0
@@ -126,13 +126,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: _0006_Layer-1_0
+      name: Level_7_0005_Layer-25_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 1117
-        height: 946
+        width: 3518
+        height: 478
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -141,8 +141,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: e0930e0bd9b12ccc0800000000000000
-      internalID: -3692358380399085298
+      spriteID: 45930489a14963180800000000000000
+      internalID: -9135951952130066092
       vertices: []
       indices: 
       edges: []
@@ -151,7 +151,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 5e97eb03825dee720800000000000000
     internalID: 0
     vertices: []
     indices: 
@@ -161,7 +161,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      _0006_Layer-1_0: -3692358380399085298
+      Level_7_0005_Layer-25_0: -9135951952130066092
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

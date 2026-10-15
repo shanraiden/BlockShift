@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: f6f5098eb4c52bc4fa3c416e7fff8ea6
+guid: f205fbc83790a894ea4fb85fd4f5e18e
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -4148321668742662293
-    second: _0009_Layer-13_0
+      213: -1068685128166647805
+    second: CoverRock_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -46,9 +46,9 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 2
+  spriteMode: 1
   spriteExtrude: 1
-  spriteMeshType: 1
+  spriteMeshType: 0
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
   spritePixelsToUnits: 100
@@ -72,9 +72,9 @@ TextureImporter:
   platformSettings:
   - serializedVersion: 4
     buildTarget: DefaultTexturePlatform
-    maxTextureSize: 2048
+    maxTextureSize: 1024
     resizeAlgorithm: 0
-    textureFormat: -1
+    textureFormat: 4
     textureCompression: 1
     compressionQuality: 50
     crunchedCompression: 0
@@ -126,13 +126,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: _0009_Layer-13_0
+      name: CoverRock_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 6920
-        height: 1080
+        width: 688
+        height: 981
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -141,8 +141,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: b67b988cb633e66c0800000000000000
-      internalID: -4148321668742662293
+      spriteID: 30852eeb9844b21f0800000000000000
+      internalID: -1068685128166647805
       vertices: []
       indices: 
       edges: []
@@ -151,7 +151,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 5e97eb03825dee720800000000000000
     internalID: 0
     vertices: []
     indices: 
@@ -161,7 +161,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      _0009_Layer-13_0: -4148321668742662293
+      CoverRock_0: -1068685128166647805
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
