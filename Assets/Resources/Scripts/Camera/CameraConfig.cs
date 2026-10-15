@@ -4,41 +4,38 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(Camera))]
 public class CameraConfig : MonoBehaviour
 {
-    [Header("Scaling Settings")]
-    public float sceneWidth = 10f;
+    [Header("Scaling & Orientation Settings")]
+    [Tooltip("Target scene width when the phone is in Landscape mode.")]
+    public float landscapeSceneWidth = 15.0f;
+    [Tooltip("Target scene width when the phone is in Portrait mode.")]
+    public float portraitSceneWidth = 10.0f;
 
     [Header("Follow Settings")]
-    public Transform worldPosFollow;          // Drag your player here
-    [Tooltip("Time in seconds for camera to reach player. Smaller value = faster/snappier, Larger value = smoother/slower.")]
+    [Tooltip("Drag your player Transform here.")]
+    public Transform worldPosFollow;
+    [Tooltip("Time in seconds for camera to reach player. Smaller = snappier, Larger = smoother.")]
     public float followSmoothTime = 0.2f;
+
     [Header("Offset Settings")]
     [Tooltip("Offset when player is on the LEFT side of the scene center.")]
     public Vector3 leftSideOffset = new Vector3(-2f, 0f, -10f);
-    private Vector3 currentOffset;
     [Tooltip("Offset when player is on the RIGHT side of the scene center.")]
-    public Vector3 rightSideOffset = new Vector3(2f, 0f, -10f); public bool isCameraFollowingPlayer = true;
+    public Vector3 rightSideOffset = new Vector3(2f, 0f, -10f);
+    public bool isCameraFollowingPlayer = true;
 
     [Header("Pan / Drag Settings (New Input System)")]
-    [Tooltip("Reference to an Input Action for screen contact/press (e.g. Pointer/press or Touchscreen/PrimaryTouch/press)")]
     [SerializeField] private InputActionProperty touchContactAction;
-
-    [Tooltip("Reference to an Input Action for screen position (e.g. Pointer/position or Touchscreen/PrimaryTouch/position)")]
     [SerializeField] private InputActionProperty touchPositionAction;
-
-    [Tooltip("Multiplier for camera panning speed.")]
     [SerializeField] private float panSensitivity = 1.0f;
 
     [Header("Inertia / Glide Settings")]
-    [Tooltip("Enable smooth momentum glide after releasing a drag or swipe.")]
     public bool enableInertia = true;
-
-    [Tooltip("Damping factor for glide momentum (lower = stops faster, higher = glides further). Range 0.80 - 0.99 recommended.")]
     [Range(0.80f, 0.99f)]
     public float decelerationRate = 0.92f;
 
     [Header("Boundary Settings")]
     public bool useBounds = true;
-    public RectTransform boundaryRectTransform; // Drag your UI/World RectTransform boundary here
+    public RectTransform boundaryRectTransform;
 
     private Vector2 minWorldBounds;
     private Vector2 maxWorldBounds;
@@ -48,18 +45,25 @@ public class CameraConfig : MonoBehaviour
     private Vector3 targetPosition;
     private Vector2 lastScreenPosition;
     private Vector3 panVelocity;
-    private Vector3 currentSmoothDampVelocity; // Used by SmoothDamp
+    private Vector3 currentSmoothDampVelocity;
     private bool isDragging = false;
 
     [Header("Target & Center Reference")]
     [SerializeField] private Transform playerTarget;
     [SerializeField] private float offsetTransitionSpeed = 3f;
     private Rigidbody2D playerRb;
+    private Vector3 currentOffset;
+
     private void Awake()
     {
         targetCamera = GetComponent<Camera>();
         targetPosition = transform.position;
-        playerRb = playerTarget.GetComponent<Rigidbody2D>();
+
+        if (playerTarget != null)
+        {
+            playerTarget.TryGetComponent<Rigidbody2D>(out playerRb);
+        }
+
         FetchWorldBoundsFromRect();
     }
 
@@ -86,6 +90,7 @@ public class CameraConfig : MonoBehaviour
         touchContactAction.action?.Disable();
         touchPositionAction.action?.Disable();
     }
+
     /// <summary>
     /// Checks player position relative to scene center and transitions the offset.
     /// </summary>
@@ -93,27 +98,22 @@ public class CameraConfig : MonoBehaviour
     {
         if (playerRb == null) return;
 
-        float vx = playerRb.linearVelocityX;
+        float vx = playerRb.linearVelocity.x;
         Vector3 targetOffset;
 
-        // Check velocity against threshold
-        if (Mathf.Abs(vx) <= 0.01)
+        if (Mathf.Abs(vx) <= 0.01f)
         {
-            // Player is stationary -> revert to centered offset
-            targetOffset = new Vector3(0,0,0);
+            targetOffset = Vector3.zero;
         }
         else if (vx < 0)
         {
-            // Moving Left
             targetOffset = leftSideOffset;
         }
         else
         {
-            // Moving Right
             targetOffset = rightSideOffset;
         }
 
-        // Smoothly interpolate current offset towards target offset
         currentOffset = Vector3.Lerp(currentOffset, targetOffset, offsetTransitionSpeed * Time.deltaTime);
     }
 
@@ -134,8 +134,6 @@ public class CameraConfig : MonoBehaviour
         {
             Vector3[] corners = new Vector3[4];
             boundaryRectTransform.GetWorldCorners(corners);
-
-            // corners[0] = Bottom-Left, corners[2] = Top-Right
             minWorldBounds = corners[0];
             maxWorldBounds = corners[2];
         }
@@ -161,12 +159,15 @@ public class CameraConfig : MonoBehaviour
 
     private void LateUpdate()
     {
-        // 1. Calculate & Set Orthographic Size based on design width
-        float unitsPerPixel = sceneWidth / Screen.width;
+        // 1. Automatic Orientation & Width Sizing:
+        // Detects whether screen width is greater than height (Landscape vs Portrait)
+        bool isLandscape = Screen.width >= Screen.height;
+        float activeSceneWidth = isLandscape ? landscapeSceneWidth : portraitSceneWidth;
+
+        float unitsPerPixel = activeSceneWidth / Screen.width;
         float halfHeight = 0.5f * unitsPerPixel * Screen.height;
         targetCamera.orthographicSize = halfHeight;
 
-        // Calculate half-width of camera viewport in world units
         float halfWidth = halfHeight * targetCamera.aspect;
 
         // 2. Process Movement Mode
@@ -175,19 +176,16 @@ public class CameraConfig : MonoBehaviour
             Vector2 currentScreenPos = touchPositionAction.action.ReadValue<Vector2>();
             Vector2 screenDelta = lastScreenPosition - currentScreenPos;
 
-            // Convert screen pixel delta to world space displacement
             float worldPerPixel = (targetCamera.orthographicSize * 2f) / Screen.height;
             Vector3 worldDelta = new Vector3(screenDelta.x * worldPerPixel, screenDelta.y * worldPerPixel, 0f) * panSensitivity;
 
             targetPosition += worldDelta;
 
-            // Compute drag velocity for flick/swipe momentum
             Vector3 currentVelocity = worldDelta / Time.unscaledDeltaTime;
             panVelocity = Vector3.Lerp(panVelocity, currentVelocity, 0.4f);
 
             lastScreenPosition = currentScreenPos;
 
-            // Apply direct transform during finger contact
             if (useBounds)
             {
                 targetPosition = ClampPositionToBounds(targetPosition, halfWidth, halfHeight);
@@ -197,7 +195,6 @@ public class CameraConfig : MonoBehaviour
         }
         else if (enableInertia && panVelocity.sqrMagnitude > 0.0001f)
         {
-            // Apply drag momentum glide
             targetPosition += panVelocity * Time.unscaledDeltaTime;
             panVelocity *= Mathf.Pow(decelerationRate, Time.unscaledDeltaTime * 60f);
 
@@ -214,7 +211,6 @@ public class CameraConfig : MonoBehaviour
 
             if (isCameraFollowingPlayer && worldPosFollow != null)
             {
-                // Smoothly ease back towards player using SmoothDamp
                 UpdateCameraOffset();
                 Vector3 desiredPos = worldPosFollow.position + currentOffset;
 
@@ -224,13 +220,12 @@ public class CameraConfig : MonoBehaviour
                 }
                 desiredPos.z = transform.position.z;
 
-                // SmoothDamp ensures a fluid spring-like transition without snapping
                 transform.position = Vector3.SmoothDamp(
-                    transform.position, 
-                    desiredPos, 
-                    ref currentSmoothDampVelocity, 
-                    followSmoothTime, 
-                    Mathf.Infinity, 
+                    transform.position,
+                    desiredPos,
+                    ref currentSmoothDampVelocity,
+                    followSmoothTime,
+                    Mathf.Infinity,
                     Time.unscaledDeltaTime
                 );
 

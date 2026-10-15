@@ -151,7 +151,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a0564565db5b874cb1fb240d4d8accd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CameraConfig
-  sceneWidth: 11
+  landscapeSceneWidth: 38
+  portraitSceneWidth: 12
   worldPosFollow: {fileID: 0}
   followSmoothTime: 0.2
   leftSideOffset: {x: -2, y: 0, z: -10}
