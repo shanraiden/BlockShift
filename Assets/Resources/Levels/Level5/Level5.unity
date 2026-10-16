@@ -2305,7 +2305,7 @@ Transform:
   m_GameObject: {fileID: 1274117599}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 4.64579, y: 6.215682, z: 0}
+  m_LocalPosition: {x: 4.64579, y: 6.965682, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2404,8 +2404,8 @@ CapsuleCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0.2687875, y: 0.84475803}
-  m_Size: {x: 5.122431, y: 0.5959992}
+  m_Offset: {x: 0.17076506, y: -0.2159463}
+  m_Size: {x: 5.31848, y: 0.59748477}
   m_Direction: 1
 --- !u!4 &1320195148 stripped
 Transform:
@@ -2498,7 +2498,7 @@ Transform:
   m_GameObject: {fileID: 1444461235}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 3.197052, y: -0.2509961, z: 0}
+  m_LocalPosition: {x: 1.447052, y: -0.2509961, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3230,7 +3230,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6178865398310875506, guid: 2369c892c7da39142bd829ea6e6bdad7, type: 3}
       propertyPath: layers.Array.data[0].horizontalStrength
-      value: 0.9
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6178865398310875506, guid: 2369c892c7da39142bd829ea6e6bdad7, type: 3}
       propertyPath: layers.Array.data[1].horizontalStrength

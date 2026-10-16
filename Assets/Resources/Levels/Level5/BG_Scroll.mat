@@ -38,20 +38,20 @@ Material:
     - _BumpFrequency: 18.2
     - _BumpSpeed: 0.53
     - _CamPosX: 0
-    - _EdgeFeather: 0.454
+    - _EdgeFeather: 0.386
     - _FogDensity: 0
     - _FogScale: 6
     - _FogSpeed: 0.8
     - _FogWindAngle: 64
     - _InvertDirection: 0
-    - _LayerCount: 9.47
+    - _LayerCount: 8.54
     - _MotionBlurStrength: 0
     - _ReverseSpeedOrder: 1
     - _SpeedMultiplier: 0.85
-    - _SplitZoneCenter: 0.501
-    - _SplitZoneWidth: 0.334
+    - _SplitZoneCenter: 0.202
+    - _SplitZoneWidth: 0.678
     - _VerticalSplit: 0
-    - _ZoneFeather: 0.0649
+    - _ZoneFeather: 0.0267
     m_Colors:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _FogColor: {r: 0.8, g: 0.85, b: 0.95, a: 0.35}

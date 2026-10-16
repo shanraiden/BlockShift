@@ -12,7 +12,8 @@ Material:
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
-  m_InvalidKeywords: []
+  m_InvalidKeywords:
+  - _PARALLAXDIRECTION_ON
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -29,20 +30,27 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _FrequencyDecay: 0.741
-    - _HighlightThreshold: 0.876
-    - _LayerSmoothness: 0.673
-    - _SecondaryWaveWeight: 1
-    - _StrengthDecay: 0.718
-    - _SurfaceFeather: 0.059
+    - _BaseSpeed: 2.28
+    - _FrequencyDecay: 0.393
+    - _HighlightThreshold: 0.871
+    - _LayerScaleParam: 0.1
+    - _LayerSmoothness: 0.433
+    - _ParallaxDirection: 1
+    - _ParallaxIntensity: 0.872
+    - _ParallaxSpeedDecay: 0.994
+    - _SecondaryWaveWeight: 0.571
+    - _StrengthDecay: 0.753
+    - _SurfaceFeather: 0.0663
     - _WaterLayers: 8
-    - _WaveAmplitude: 0.0187
-    - _WaveScale: 14.1
-    - _WaveSpeed: -3.8
+    - _WaveAmplitude: 0.0081
+    - _WaveScale: 21.8
+    - _WaveSpeed: 2.59
     m_Colors:
     - _Color: {r: 1, g: 1, b: 1, a: 0.8}
-    - _HighlightColor: {r: 0.44811308, g: 0.8157258, b: 1, a: 0}
+    - _HighlightColor: {r: 1, g: 1, b: 1, a: 0}
+    - _ScrollSpeed: {r: -0.13, g: 0, b: 0, a: 0}
     - _ShallowColor: {r: 1, g: 1, b: 1, a: 0.9}
-    - _WaveDirection: {r: 2.59, g: 13.73, b: 0, a: 0}
+    - _Tiling: {r: 1, g: 1, b: 0, a: 0}
+    - _WaveDirection: {r: 5.2, g: 8.62, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

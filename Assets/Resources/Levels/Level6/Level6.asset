@@ -15,23 +15,4 @@ MonoBehaviour:
   levelNumber: 1
   levelName: New Level
   parMoves: 15
-  islands:
-  - islandID: 1
-    originPosition: {x: 14, y: -3}
-    width: 2
-    height: 3
-    scaleFactorX: 2
-    scaleFactorY: 2
-    gridData:
-    - type: 8
-      blockColorID: 0
-    - type: 3
-      blockColorID: 0
-    - type: 1
-      blockColorID: 0
-    - type: 1
-      blockColorID: 0
-    - type: 9
-      blockColorID: 0
-    - type: 0
-      blockColorID: 0
+  islands: []

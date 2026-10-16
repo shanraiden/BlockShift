@@ -67,6 +67,23 @@ public class CameraConfig : MonoBehaviour
         FetchWorldBoundsFromRect();
     }
 
+    private void Start()
+    {
+        // Force camera to start inside bounds immediately upon game launch
+        if (useBounds)
+        {
+            bool isLandscape = Screen.width >= Screen.height;
+            float activeSceneWidth = isLandscape ? landscapeSceneWidth : portraitSceneWidth;
+            float unitsPerPixel = activeSceneWidth / Screen.width;
+            float halfHeight = 0.5f * unitsPerPixel * Screen.height;
+            targetCamera.orthographicSize = halfHeight;
+            float halfWidth = halfHeight * targetCamera.aspect;
+
+            transform.position = ClampPositionToBounds(transform.position, halfWidth, halfHeight);
+            targetPosition = transform.position;
+        }
+    }
+
     private void OnEnable()
     {
         touchContactAction.action?.Enable();
@@ -160,7 +177,6 @@ public class CameraConfig : MonoBehaviour
     private void LateUpdate()
     {
         // 1. Automatic Orientation & Width Sizing:
-        // Detects whether screen width is greater than height (Landscape vs Portrait)
         bool isLandscape = Screen.width >= Screen.height;
         float activeSceneWidth = isLandscape ? landscapeSceneWidth : portraitSceneWidth;
 

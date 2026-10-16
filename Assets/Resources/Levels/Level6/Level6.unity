@@ -1396,11 +1396,11 @@ PrefabInstance:
     - target: {fileID: 618794827894352596, guid: f04c48bbc749e334b9ce34598d961bd2, type: 3}
       propertyPath: levelData
       value: 
-      objectReference: {fileID: 11400000, guid: d4b4b3a3e045a7f4b9d5f0496338ee1c, type: 2}
+      objectReference: {fileID: 11400000, guid: 95d2baae13c6f41488a5e056ecc86560, type: 2}
     - target: {fileID: 2906752727789316050, guid: f04c48bbc749e334b9ce34598d961bd2, type: 3}
       propertyPath: currentLevel
       value: 
-      objectReference: {fileID: 11400000, guid: d4b4b3a3e045a7f4b9d5f0496338ee1c, type: 2}
+      objectReference: {fileID: 11400000, guid: 95d2baae13c6f41488a5e056ecc86560, type: 2}
     - target: {fileID: 3610159276576041526, guid: f04c48bbc749e334b9ce34598d961bd2, type: 3}
       propertyPath: m_Name
       value: GameManager
