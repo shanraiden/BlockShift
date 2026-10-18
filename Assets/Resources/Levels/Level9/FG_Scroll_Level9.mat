@@ -31,7 +31,7 @@ Material:
     m_Floats:
     - _AutoScrollSpeed: 0
     - _AutoScrollSpeedY: 0
-    - _BaseParallax: 0.02
+    - _BaseParallax: 0.005
     - _BlurSamples: 5
     - _BumpAmount: 0
     - _BumpFrequency: 10

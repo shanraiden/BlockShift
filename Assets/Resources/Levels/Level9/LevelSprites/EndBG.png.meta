@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 4b135485bc2699e48ba1965e6155de87
+guid: f3e52ae064d7a1e46949a065218f57ae
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -5534812824919090504
-    second: SpriteGround_0
+      213: -353931040695664640
+    second: BG_RiverWater_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -51,7 +51,7 @@ TextureImporter:
   spriteMeshType: 0
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 50
+  spritePixelsToUnits: 25
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -72,7 +72,7 @@ TextureImporter:
   platformSettings:
   - serializedVersion: 4
     buildTarget: DefaultTexturePlatform
-    maxTextureSize: 1024
+    maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
     textureCompression: 1
@@ -126,13 +126,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: SpriteGround_0
+      name: BG_RiverWater_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 874
-        height: 388
+        width: 1920
+        height: 1080
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -141,8 +141,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 8badb687f056033b0800000000000000
-      internalID: -5534812824919090504
+      spriteID: 000c95cf795961bf0800000000000000
+      internalID: -353931040695664640
       vertices: []
       indices: 
       edges: []
@@ -161,7 +161,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      SpriteGround_0: -5534812824919090504
+      BG_RiverWater_0: -353931040695664640
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
