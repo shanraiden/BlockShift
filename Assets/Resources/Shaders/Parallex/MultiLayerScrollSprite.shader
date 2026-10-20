@@ -7,7 +7,7 @@ Shader "Custom/2D/CameraParallaxScrollSprite"
         
         [Header(Camera Parallax Settings)]
         _CamPosX ("Camera World X Position", Float) = 0.0
-        _BaseParallax ("Base Parallax Multiplier", Range(-2.0, 2.0)) = 0.5
+        _BaseParallax ("Base Parallax Multiplier", Range(-.5, .5)) = 0
 
         [Header(Autonomous Texture Movement)]
         _AutoScrollSpeed ("Auto Scroll Speed Horizontal", Float) = 0.5

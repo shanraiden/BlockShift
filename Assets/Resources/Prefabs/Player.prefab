@@ -194,7 +194,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
   touchContactActionLeft: {fileID: 0}
   touchContactActionRight: {fileID: 0}
-  moveSpeed: 4
+  moveSpeed: 6
   useScreenCenter: 1
   PlayerRigidBody: {fileID: 5120509907540968242}
   controlAreaRect: {fileID: 0}
