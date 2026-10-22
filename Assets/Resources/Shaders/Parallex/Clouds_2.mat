@@ -34,7 +34,7 @@ Material:
     - _AutoScrollSpeedY: 0
     - _BaseParallax: 0.02
     - _BaseSpeed: 0.09
-    - _BlurSamples: 5
+    - _BlurSamples: 3
     - _BumpAmount: 0
     - _BumpFrequency: 1
     - _BumpSpeed: 0
@@ -48,7 +48,7 @@ Material:
     - _GlintThickness: 0.08
     - _InvertDirection: 0
     - _LayerCount: 13.38
-    - _MotionBlurStrength: 0.02
+    - _MotionBlurStrength: 0
     - _RandomSeed: 76.7
     - _ReverseSpeedOrder: 1
     - _SpeedMultiplier: 0.62

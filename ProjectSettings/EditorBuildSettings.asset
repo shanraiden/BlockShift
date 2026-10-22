@@ -24,20 +24,32 @@ EditorBuildSettings:
     path: Assets/Resources/Levels/Level6/Level6.unity
     guid: 00e735898e4a88a4487965dfdb0dc7f6
   - enabled: 0
-    path: Assets/Resources/Levels/Level7/Level7.unity
-    guid: c0943c68cc9924e4cb4530b9d21cd434
-  - enabled: 0
     path: Assets/Resources/Levels/Level8/Level8.unity
     guid: b52960bcbc7f4e54cace50320c798542
+  - enabled: 0
+    path: Assets/Resources/Levels/Level7/Level7.unity
+    guid: c0943c68cc9924e4cb4530b9d21cd434
   - enabled: 0
     path: Assets/Resources/Levels/Level9/Level9.unity
     guid: a0e1faf36e7b90646849a918885eb8ce
   - enabled: 0
     path: Assets/Resources/Levels/Level11/Level11.unity
     guid: 2eae45e515ecce94ca63fc747115a848
-  - enabled: 1
+  - enabled: 0
     path: Assets/Resources/Levels/Level13/Level13.unity
     guid: 35eb9bb223e30c941946ef3647e9926b
+  - enabled: 0
+    path: Assets/Resources/Levels/Level15/Level15.unity
+    guid: 442e8c8ae4ae2cd4d98212a182445c80
+  - enabled: 0
+    path: Assets/Resources/Levels/Level16/Level16.unity
+    guid: 797b35a7706ddbf4987b0bf405c518f4
+  - enabled: 1
+    path: Assets/Resources/Levels/Level17/Level17.unity
+    guid: 638d2c70e71c2a745b59e56738b99a66
+  - enabled: 1
+    path: Assets/Resources/Levels/Level18/Level18.unity
+    guid: e71acf1a2b280ea4cbb405574ae364db
   m_configObjects:
     com.unity.input.settings: {fileID: 11400000, guid: 82b15fd2a29d3884b83510a83ef0d3c7, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}

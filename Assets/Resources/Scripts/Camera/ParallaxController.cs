@@ -14,22 +14,23 @@ public class ParallaxController : MonoBehaviour
         [Range(-2f, 2f)]
         public float verticalStrength;
 
-        [Header("Absolute World Space Bounds")]
+        [Header("Trigger & Bounding Box Rules")]
+        [Tooltip("If checked, parallax only happens when the camera rectangle and layer rectangle touch or overlap.")]
+        public bool parallaxOnlyWhenVisible;
+
+        [Tooltip("Center offset relative to the layer object's position.")]
+        public Vector2 boundsCenterOffset = Vector2.zero;
+
+        [Tooltip("Fallback size used if no SpriteRenderer is detected.")]
+        public Vector2 fallbackBoundsSize = new Vector2(40f, 20f);
+
+        [Header("Absolute World Space Clamp Bounds")]
         public bool useHorizontalBounds;
         public Vector2 xWorldMinMax;
 
-        [Header("Absolute World Space Bounds")]
+        [Header("Absolute World Space Clamp Bounds")]
         public bool useVerticalBounds;
         public Vector2 yWorldMinMax;
-
-        [Header("Trigger Execution Rules")]
-        [Tooltip("If true, this object stays perfectly fixed in the world, and ONLY starts its parallax movement when its bounds overlap the camera view.")]
-        public bool parallaxOnlyWhenVisible;
-
-        // Cached reference to the object's visual bounds
-        [HideInInspector] public Renderer cachedRenderer;
-        [HideInInspector] public Collider2D cachedCollider;
-        [HideInInspector] public bool componentsChecked;
     }
 
     public List<ParallaxLayer> layers;
@@ -43,16 +44,12 @@ public class ParallaxController : MonoBehaviour
         if (cam == null) cam = Camera.main;
 
         lastCameraPosition = transform.position;
-
-        // Pre-cache bounds components to optimize runtime calculation loops
-        foreach (var layer in layers)
-        {
-            CacheLayerComponents(layer);
-        }
     }
 
     void LateUpdate()
     {
+        if (cam == null) return;
+
         Vector3 currentCameraPosition = transform.position;
 
         if (isFirstFrame)
@@ -63,49 +60,40 @@ public class ParallaxController : MonoBehaviour
         }
 
         Vector3 deltaMovement = currentCameraPosition - lastCameraPosition;
-        Bounds cameraBounds = GetCameraWorldBounds();
+        Bounds cameraBounds = GetCameraWorldBounds(cam);
 
         foreach (var layer in layers)
         {
             if (layer.layerObject == null) continue;
 
             Vector3 currentPos = layer.layerObject.transform.position;
-
             float moveX = 0f;
             float moveY = 0f;
 
             if (layer.parallaxOnlyWhenVisible)
             {
-                // 1. Get the current bounding box of the layer object
                 Bounds layerBounds = GetLayerWorldBounds(layer);
+                bool isTouchingOrOverlapping = Intersects2D(cameraBounds, layerBounds);
 
-                // 2. Perform a true AABB Intersection test (Checks if any part of the bounds overlap)
-                bool isOverlapping = cameraBounds.Intersects(layerBounds);
-
-                if (isOverlapping)
+                if (isTouchingOrOverlapping)
                 {
-                    // OVERLAPPING: Apply the active parallax drift effect
                     moveX = deltaMovement.x * layer.horizontalStrength;
                     moveY = deltaMovement.y * layer.verticalStrength;
                 }
                 else
                 {
-                    // NO OVERLAP: Keep it completely still in world coordinates
-                    continue;
+                    continue; // Rectangles are completely separated; stay still
                 }
             }
             else
             {
-                // Standard Global Parallax Layer
                 moveX = deltaMovement.x * layer.horizontalStrength;
                 moveY = deltaMovement.y * layer.verticalStrength;
             }
 
-            // 3. Predict absolute world positions
             float targetX = currentPos.x + moveX;
             float targetY = currentPos.y + moveY;
 
-            // 4. Enforce rigid world boundaries if required
             if (layer.useHorizontalBounds)
             {
                 targetX = Mathf.Clamp(targetX, layer.xWorldMinMax.x, layer.xWorldMinMax.y);
@@ -122,49 +110,50 @@ public class ParallaxController : MonoBehaviour
         lastCameraPosition = currentCameraPosition;
     }
 
-    private void CacheLayerComponents(ParallaxLayer layer)
-    {
-        if (layer.layerObject == null || layer.componentsChecked) return;
-
-        layer.cachedRenderer = layer.layerObject.GetComponent<Renderer>();
-        if (layer.cachedRenderer == null)
-        {
-            layer.cachedRenderer = layer.layerObject.GetComponentInChildren<Renderer>();
-        }
-
-        layer.cachedCollider = layer.layerObject.GetComponent<Collider2D>();
-        if (layer.cachedCollider == null)
-        {
-            layer.cachedCollider = layer.layerObject.GetComponentInChildren<Collider2D>();
-        }
-
-        layer.componentsChecked = true;
-    }
-
     /// <summary>
-    /// Gets the absolute bounding box area of the layer object using its SpriteRenderer or Collider2D.
-    /// Falls back safely to a default point if no visual bounding component is detected.
+    /// Automatically calculates precise world bounds based on SpriteRenderer DrawMode (Simple vs Tiled/Sliced).
     /// </summary>
     private Bounds GetLayerWorldBounds(ParallaxLayer layer)
     {
-        // Make sure components are cached (safeguards dynamically added elements)
-        if (!layer.componentsChecked) CacheLayerComponents(layer);
+        SpriteRenderer sr = layer.layerObject.GetComponent<SpriteRenderer>();
+        if (sr == null) sr = layer.layerObject.GetComponentInChildren<SpriteRenderer>();
 
-        if (layer.cachedRenderer != null) return layer.cachedRenderer.bounds;
-        if (layer.cachedCollider != null) return layer.cachedCollider.bounds;
+        Vector2 size = layer.fallbackBoundsSize;
 
-        // Fallback to pivot point if no spatial components exist
-        return new Bounds(layer.layerObject.transform.position, Vector3.one * 0.1f);
+        if (sr != null && sr.sprite != null)
+        {
+            if (sr.drawMode == SpriteDrawMode.Simple)
+            {
+                // Simple mode uses the native dimensions of the sprite asset
+                size = sr.sprite.rect.size / sr.sprite.pixelsPerUnit;
+            }
+            else if (sr.drawMode == SpriteDrawMode.Tiled || sr.drawMode == SpriteDrawMode.Sliced)
+            {
+                // Tiled/Sliced mode uses the explicitly defined size field on the renderer
+                size = sr.size;
+            }
+
+            // Factor in world scale scaling
+            Vector3 lossyScale = sr.transform.lossyScale;
+            size.x *= Mathf.Abs(lossyScale.x);
+            size.y *= Mathf.Abs(lossyScale.y);
+        }
+
+        Vector3 worldCenter = layer.layerObject.transform.position + (Vector3)layer.boundsCenterOffset;
+        return new Bounds(worldCenter, new Vector3(size.x, size.y, 999f));
     }
 
-    private Bounds GetCameraWorldBounds()
+    private Bounds GetCameraWorldBounds(Camera targetCam)
     {
-        if (cam == null) return new Bounds(transform.position, Vector3.zero);
-
-        float screenAspect = (float)Screen.width / Screen.height;
-        float cameraHeight = cam.orthographicSize * 2f;
-        float cameraWidth = cameraHeight * screenAspect;
-
-        return new Bounds(cam.transform.position, new Vector3(cameraWidth, cameraHeight, 20f));
+        float cameraHeight = targetCam.orthographicSize * 2f;
+        float cameraWidth = cameraHeight * targetCam.aspect;
+        return new Bounds(targetCam.transform.position, new Vector3(cameraWidth, cameraHeight, 50f));
     }
+
+    private bool Intersects2D(Bounds a, Bounds b)
+    {
+        return (a.min.x <= b.max.x && a.max.x >= b.min.x) &&
+               (a.min.y <= b.max.y && a.max.y >= b.min.y);
+    }
+
 }
