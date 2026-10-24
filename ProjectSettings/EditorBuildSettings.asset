@@ -44,12 +44,18 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/Resources/Levels/Level16/Level16.unity
     guid: 797b35a7706ddbf4987b0bf405c518f4
-  - enabled: 1
+  - enabled: 0
     path: Assets/Resources/Levels/Level17/Level17.unity
     guid: 638d2c70e71c2a745b59e56738b99a66
-  - enabled: 1
+  - enabled: 0
     path: Assets/Resources/Levels/Level18/Level18.unity
     guid: e71acf1a2b280ea4cbb405574ae364db
+  - enabled: 0
+    path: Assets/Resources/Levels/Level19/Level19.unity
+    guid: eb337a9c3c293dd40b3b7fcf77568a5a
+  - enabled: 1
+    path: Assets/Resources/Levels/Level20/Level20.unity
+    guid: 7138f90351312d846bec4112ac5c8f52
   m_configObjects:
     com.unity.input.settings: {fileID: 11400000, guid: 82b15fd2a29d3884b83510a83ef0d3c7, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}

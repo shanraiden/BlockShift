@@ -43,7 +43,7 @@ Material:
     - _FogSpeed: 0.8
     - _FogWindAngle: 64
     - _InvertDirection: 0
-    - _LayerCount: 5.23
+    - _LayerCount: 5.38
     - _MotionBlurStrength: 0.0503
     - _ReverseSpeedOrder: 0
     - _SpeedMultiplier: 1.69

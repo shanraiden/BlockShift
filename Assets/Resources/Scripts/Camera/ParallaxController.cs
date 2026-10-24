@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class ParallaxController : MonoBehaviour
@@ -65,14 +66,39 @@ public class ParallaxController : MonoBehaviour
         foreach (var layer in layers)
         {
             if (layer.layerObject == null) continue;
+            if (layer.layerObject.transform.childCount == 0)
+            {
+                initiateParallexing(layer.layerObject, layer, cameraBounds, deltaMovement);
+            }
+            else
+            {
+                GameObject[] childObjects = layer.layerObject.GetComponentsInChildren<Transform>()
+                                                           .Where(t => t != layer.layerObject.transform)
+                                                           .Select(t => t.gameObject)
+                                                           .ToArray();
 
-            Vector3 currentPos = layer.layerObject.transform.position;
+                foreach (GameObject childObject in childObjects)
+                {
+                    print(childObject.name);
+                    initiateParallexing(childObject, layer, cameraBounds, deltaMovement);
+
+                }
+            }
+            
+        }
+
+        lastCameraPosition = currentCameraPosition;
+    }
+
+    private void initiateParallexing(GameObject layerObject,ParallaxLayer layer,Bounds cameraBounds,Vector3 deltaMovement)
+    { 
+    Vector3 currentPos = layerObject.transform.position;
             float moveX = 0f;
             float moveY = 0f;
 
             if (layer.parallaxOnlyWhenVisible)
             {
-                Bounds layerBounds = GetLayerWorldBounds(layer);
+                Bounds layerBounds = GetLayerWorldBounds(layerObject);
                 bool isTouchingOrOverlapping = Intersects2D(cameraBounds, layerBounds);
 
                 if (isTouchingOrOverlapping)
@@ -80,10 +106,7 @@ public class ParallaxController : MonoBehaviour
                     moveX = deltaMovement.x * layer.horizontalStrength;
                     moveY = deltaMovement.y * layer.verticalStrength;
                 }
-                else
-                {
-                    continue; // Rectangles are completely separated; stay still
-                }
+              
             }
             else
             {
@@ -104,21 +127,17 @@ public class ParallaxController : MonoBehaviour
                 targetY = Mathf.Clamp(targetY, layer.yWorldMinMax.x, layer.yWorldMinMax.y);
             }
 
-            layer.layerObject.transform.position = new Vector3(targetX, targetY, currentPos.z);
-        }
-
-        lastCameraPosition = currentCameraPosition;
+        layerObject.transform.position = new Vector3(targetX, targetY, currentPos.z);
     }
-
     /// <summary>
     /// Automatically calculates precise world bounds based on SpriteRenderer DrawMode (Simple vs Tiled/Sliced).
     /// </summary>
-    private Bounds GetLayerWorldBounds(ParallaxLayer layer)
+    private Bounds GetLayerWorldBounds(GameObject layer)
     {
-        SpriteRenderer sr = layer.layerObject.GetComponent<SpriteRenderer>();
-        if (sr == null) sr = layer.layerObject.GetComponentInChildren<SpriteRenderer>();
+        SpriteRenderer sr = layer.GetComponent<SpriteRenderer>();
+        if (sr == null) sr = layer.GetComponentInChildren<SpriteRenderer>();
 
-        Vector2 size = layer.fallbackBoundsSize;
+        Vector2 size = Vector2.zero;
 
         if (sr != null && sr.sprite != null)
         {
@@ -139,7 +158,7 @@ public class ParallaxController : MonoBehaviour
             size.y *= Mathf.Abs(lossyScale.y);
         }
 
-        Vector3 worldCenter = layer.layerObject.transform.position + (Vector3)layer.boundsCenterOffset;
+        Vector3 worldCenter = layer.transform.position ;
         return new Bounds(worldCenter, new Vector3(size.x, size.y, 999f));
     }
 
