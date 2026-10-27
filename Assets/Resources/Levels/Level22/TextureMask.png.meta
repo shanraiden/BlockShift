@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 8b932399226b97c468a02617d50d3fca
+guid: ddbbb6a56f7d6104ea529938d9a00419
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 8570121644504755270
-    second: _0025_BG_0
+      213: 7279378189589531574
+    second: TextureMask_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -46,12 +46,12 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 2
+  spriteMode: 1
   spriteExtrude: 1
-  spriteMeshType: 1
+  spriteMeshType: 0
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 100
+  spritePixelsToUnits: 50
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -72,7 +72,7 @@ TextureImporter:
   platformSettings:
   - serializedVersion: 4
     buildTarget: DefaultTexturePlatform
-    maxTextureSize: 2048
+    maxTextureSize: 1024
     resizeAlgorithm: 0
     textureFormat: -1
     textureCompression: 1
@@ -126,13 +126,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: _0025_BG_0
+      name: TextureMask_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 7128
-        height: 630
+        width: 622
+        height: 197
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -141,8 +141,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 64ca79eaa303fe670800000000000000
-      internalID: 8570121644504755270
+      spriteID: 6bbc53845eb850560800000000000000
+      internalID: 7279378189589531574
       vertices: []
       indices: 
       edges: []
@@ -151,7 +151,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 5e97eb03825dee720800000000000000
     internalID: 0
     vertices: []
     indices: 
@@ -161,7 +161,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      _0025_BG_0: 8570121644504755270
+      TextureMask_0: 7279378189589531574
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
