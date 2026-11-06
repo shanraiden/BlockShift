@@ -52,8 +52,8 @@ Material:
     - _RandomSeed: 76.7
     - _ReverseSpeedOrder: 1
     - _SpeedMultiplier: 0.08
-    - _SplitZoneCenter: 0.447
-    - _SplitZoneWidth: 0.911
+    - _SplitZoneCenter: 1
+    - _SplitZoneWidth: 1
     - _VerticalSplit: 0
     - _ZoneFeather: 0.0894
     m_Colors:

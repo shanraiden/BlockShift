@@ -35,20 +35,20 @@ Material:
     - _BaseSpeed: 0.32
     - _BlurAmount: 0.027
     - _BlurSamples: 4
-    - _BumpAmount: 0.0319
+    - _BumpAmount: 0.056
     - _BumpFrequency: 27.1
     - _BumpSpeed: 0.4
     - _CamPosX: 0
     - _EdgeFeather: 0.452
     - _FogDensity: 0
-    - _FogScale: 13.09
+    - _FogScale: 9.7
     - _FogSpeed: 1.54
     - _FogWindAngle: 211
     - _GlintIntensity: 0
     - _GlintThickness: 0.01
     - _InvertDirection: 0
     - _LayerCount: 7.3
-    - _MotionBlurStrength: 0.027
+    - _MotionBlurStrength: 0.0411
     - _RandomSeed: 100
     - _ReverseSpeedOrder: 0
     - _SpeedMultiplier: 0.54
