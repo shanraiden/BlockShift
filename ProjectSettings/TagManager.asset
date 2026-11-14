@@ -23,7 +23,7 @@ TagManager:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - ComShift
+  - Pickable
   - Water
   - UI
   - Ground

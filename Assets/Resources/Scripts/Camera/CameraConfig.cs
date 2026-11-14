@@ -58,7 +58,7 @@ public class CameraConfig : MonoBehaviour
     {
         targetCamera = GetComponent<Camera>();
         targetPosition = transform.position;
-
+        
         if (playerTarget != null)
         {
             playerTarget.TryGetComponent<Rigidbody2D>(out playerRb);
@@ -69,6 +69,9 @@ public class CameraConfig : MonoBehaviour
 
     private void Start()
     {
+        Transform playerTransformm = GameObject.FindGameObjectWithTag("Player").transform;
+        worldPosFollow = playerTransformm;
+        playerTarget = playerTransformm;
         // Force camera to start inside bounds immediately upon game launch
         if (useBounds)
         {

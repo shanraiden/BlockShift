@@ -18,7 +18,7 @@ public class CameraViewSpriteCuller : MonoBehaviour
         mainCam = Camera.main;
 
         // Find all sprite renderers in the scene
-        allSpriteRenderers = FindObjectsByType<SpriteRenderer>(FindObjectsSortMode.None);
+        allSpriteRenderers = FindObjectsByType<SpriteRenderer>();
         frustumPlanes = new Plane[6];
     }
 

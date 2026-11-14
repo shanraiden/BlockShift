@@ -198,7 +198,7 @@ MonoBehaviour:
         m_Flags: 0
       m_Flags: 0
     m_Reference: {fileID: 0}
-  panSensitivity: 1
+  panSensitivity: 0.29
   enableInertia: 1
   decelerationRate: 0.92
   useBounds: 1
@@ -221,33 +221,30 @@ MonoBehaviour:
   - layerObject: {fileID: 0}
     horizontalStrength: 1
     verticalStrength: 0
+    parallaxOnlyWhenVisible: 0
+    boundsCenterOffset: {x: 0, y: 0}
+    fallbackBoundsSize: {x: 40, y: 20}
     useHorizontalBounds: 0
     xWorldMinMax: {x: 0, y: 0}
     useVerticalBounds: 0
     yWorldMinMax: {x: 0, y: 0}
-    parallaxOnlyWhenVisible: 0
-    cachedRenderer: {fileID: 0}
-    cachedCollider: {fileID: 0}
-    componentsChecked: 0
   - layerObject: {fileID: 0}
     horizontalStrength: 0.8
     verticalStrength: 0
+    parallaxOnlyWhenVisible: 0
+    boundsCenterOffset: {x: 0, y: 0}
+    fallbackBoundsSize: {x: 40, y: 20}
     useHorizontalBounds: 0
     xWorldMinMax: {x: 0, y: 0}
     useVerticalBounds: 0
     yWorldMinMax: {x: 0, y: 0}
-    parallaxOnlyWhenVisible: 0
-    cachedRenderer: {fileID: 0}
-    cachedCollider: {fileID: 0}
-    componentsChecked: 0
   - layerObject: {fileID: 0}
     horizontalStrength: 0.71
     verticalStrength: 0
+    parallaxOnlyWhenVisible: 0
+    boundsCenterOffset: {x: 0, y: 0}
+    fallbackBoundsSize: {x: 40, y: 20}
     useHorizontalBounds: 0
     xWorldMinMax: {x: 0, y: 0}
     useVerticalBounds: 0
     yWorldMinMax: {x: 0, y: 0}
-    parallaxOnlyWhenVisible: 0
-    cachedRenderer: {fileID: 0}
-    cachedCollider: {fileID: 0}
-    componentsChecked: 0

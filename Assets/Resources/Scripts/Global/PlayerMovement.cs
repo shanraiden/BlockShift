@@ -51,6 +51,7 @@ public class PlayerMovement : MonoBehaviour
     private int uiMovingDirection = 0;
     private int playerMovingDirection = 0;
     private SpriteRenderer spriteRenderer;
+    private ProceduralSineRig2D tailMovement;
 
     private void Awake()
     {
@@ -58,7 +59,7 @@ public class PlayerMovement : MonoBehaviour
             PlayerRigidBody = GetComponent<Rigidbody2D>();
 
         spriteRenderer = GetComponent<SpriteRenderer>();
-
+        tailMovement = GameObject.Find("Tail").GetComponent<ProceduralSineRig2D>();
         // Auto-populate default Keyboard & Gamepad bindings if none were configured in the Inspector
         if (moveLeftAction.bindings.Count == 0)
         {
@@ -169,7 +170,7 @@ public class PlayerMovement : MonoBehaviour
         bool shouldRun = hasMovementInput && (triggerRunningOnMove || isSprintHeld);
         bool shouldMove = hasMovementInput && !shouldRun;
         isRunning = shouldRun;
-
+        tailMovement.isRunning = shouldRun;
         if (proceduralFKLegs == null || proceduralFKLegs.Count == 0) return;
 
         for (int i = 0; i < proceduralFKLegs.Count; i++)
@@ -180,6 +181,7 @@ public class PlayerMovement : MonoBehaviour
             leg.IsStill = !hasMovementInput;
             leg.IsMoving = shouldMove;
             leg.IsRunning = shouldRun;
+            tailMovement.isMoving = shouldMove;
         }
     }
 
