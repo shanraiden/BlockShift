@@ -63,12 +63,6 @@ public class PortalTower2D : MonoBehaviour
     [Tooltip("Cooldown (in seconds) after arriving at a destination portal before the object can trigger another teleport.")]
     public float reentryCooldown = 0.6f;
 
-    [Tooltip("If true, preserves the incoming object's Rigidbody2D velocity when reactivated at the destination portal.")]
-    public bool preserveVelocityOnExit = true;
-
-    [Tooltip("Additional impulse velocity applied to the object when it exits the destination portal.")]
-    public Vector2 exitVelocityImpulse = Vector2.zero;
-
     [Header("Events")]
     public UnityEvent<GameObject, PortalTower2D> onTeleportStarted;
     public UnityEvent<GameObject, PortalTower2D> onTeleportCompleted;
@@ -92,20 +86,11 @@ public class PortalTower2D : MonoBehaviour
 
     public PortalTower2D ClosestLinkedPortal => FindClosestPortalInRange();
 
-    private void Reset()
-    {
-        EnsureTriggerCollider();
-    }
+    #region Unity Lifecycle
 
-    private void OnValidate()
-    {
-        EnsureTriggerCollider();
-    }
-
-    private void Awake()
-    {
-        EnsureTriggerCollider();
-    }
+    private void Reset() => EnsureTriggerCollider();
+    private void OnValidate() => EnsureTriggerCollider();
+    private void Awake() => EnsureTriggerCollider();
 
     private void OnEnable()
     {
@@ -123,25 +108,32 @@ public class PortalTower2D : MonoBehaviour
         currentClosestPortal = FindClosestPortalInRange();
     }
 
+    private void OnTriggerEnter2D(Collider2D other) => HandleTrigger(other);
+    private void OnTriggerStay2D(Collider2D other) => HandleTrigger(other);
+
+    #endregion
+
+    #region Trigger & Teleportation Logic
+
     private void EnsureTriggerCollider()
     {
         if (portalTriggerCollider == null)
             TryGetComponent(out portalTriggerCollider);
 
         if (portalTriggerCollider != null && !portalTriggerCollider.isTrigger)
-        {
             portalTriggerCollider.isTrigger = true;
-        }
     }
 
-    private void OnTriggerEnter2D(Collider2D other)
+    private void HandleTrigger(Collider2D other)
     {
-        if (other == null) return;
+        if (other == null)
+            return;
 
         GameObject targetObj = ResolveTeleportableObject(other);
-        if (targetObj == null) return;
-
-        TryTeleportObject(targetObj);
+        if (targetObj != null)
+        {
+            TryTeleportObject(targetObj);
+        }
     }
 
     /// <summary>
@@ -174,42 +166,27 @@ public class PortalTower2D : MonoBehaviour
         Vector3 startPos = GetAnchorWorldPosition();
         Vector3 endPos = destinationPortal.GetExitWorldPosition();
 
-        // Cache velocity before disabling the incoming GameObject
         Rigidbody2D rb = transportingObj.GetComponent<Rigidbody2D>();
-        Vector2 savedVelocity = rb != null ? rb.linearVelocity : Vector2.zero;
-        float savedAngularVelocity = rb != null ? rb.angularVelocity : 0f;
+        ResetRigidbodyVelocity(rb);
 
         onTeleportStarted?.Invoke(transportingObj, destinationPortal);
 
-        // 1. Disable the incoming GameObject
+        // 1. Disable incoming GameObject
         transportingObj.SetActive(false);
 
-        // 2. Instantiate & enable the Particle System Prefab
+        // 2. Spawn & play the Particle System Prefab
         GameObject particleObj = SpawnParticlePrefab(startPos, transportingObj.name);
-        ParticleSystem[] particleSystems = particleObj != null ? particleObj.GetComponentsInChildren<ParticleSystem>(true) : null;
-        if (particleSystems != null)
-        {
-            for (int i = 0; i < particleSystems.Length; i++)
-            {
-                if (particleSystems[i] != null)
-                {
-                    particleSystems[i].gameObject.SetActive(true);
-                    particleSystems[i].Play(true);
-                }
-            }
-        }
+        ParticleSystem[] particleSystems = PlayAllParticleSystems(particleObj);
 
-        // 3. Wait / move Particle System Prefab from this Portal to the Destination Portal
+        // 3. Move Particle System Prefab from this Portal to the Destination Portal
         float duration = Mathf.Max(0.05f, teleportDuration);
         float elapsed = 0f;
 
         while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
-            float t = Mathf.Clamp01(elapsed / duration);
-            float smoothT = Mathf.SmoothStep(0f, 1f, t);
+            float smoothT = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / duration));
 
-            // Re-evaluate destination exit position in case destination portal is moving
             if (destinationPortal != null)
             {
                 endPos = destinationPortal.GetExitWorldPosition();
@@ -225,28 +202,10 @@ public class PortalTower2D : MonoBehaviour
             yield return null;
         }
 
-        // 4. Destroy the Particle System Prefab when teleportation is done
-        if (particleObj != null)
-        {
-            if (particleDestroyDelay <= 0.001f)
-            {
-                Destroy(particleObj);
-            }
-            else
-            {
-                if (particleSystems != null)
-                {
-                    for (int i = 0; i < particleSystems.Length; i++)
-                    {
-                        if (particleSystems[i] != null)
-                            particleSystems[i].Stop(true, ParticleSystemStopBehavior.StopEmitting);
-                    }
-                }
-                Destroy(particleObj, particleDestroyDelay);
-            }
-        }
+        // 4. Destroy the Particle System Prefab
+        CleanupParticlePrefab(particleObj, particleSystems);
 
-        // 5. Move transporting GameObject to destination portal, set cooldown, and reactivate it
+        // 5. Move transporting GameObject to destination portal, reactivate, and zero velocity
         if (transportingObj != null)
         {
             if (destinationPortal != null)
@@ -254,17 +213,16 @@ public class PortalTower2D : MonoBehaviour
                 endPos = destinationPortal.GetExitWorldPosition();
             }
 
-            transportingObj.transform.position = endPos;
-            s_objectCooldownUntil[transportingObj] = Time.time + Mathf.Max(0.05f, destinationPortal != null ? destinationPortal.reentryCooldown : reentryCooldown);
+            float cooldownDuration = destinationPortal != null ? destinationPortal.reentryCooldown : reentryCooldown;
+            float cooldownUntil = Time.time + Mathf.Max(0.05f, cooldownDuration);
 
+            transportingObj.transform.position = endPos;
+            s_objectCooldownUntil[transportingObj] = cooldownUntil;
             transportingObj.SetActive(true);
 
-            if (rb != null)
-            {
-                rb.linearVelocity = (preserveVelocityOnExit ? savedVelocity : Vector2.zero) +
-                                    (destinationPortal != null ? destinationPortal.exitVelocityImpulse : exitVelocityImpulse);
-                rb.angularVelocity = preserveVelocityOnExit ? savedAngularVelocity : 0f;
-            }
+            ResetRigidbodyVelocity(rb);
+
+            Physics2D.SyncTransforms();
 
             onTeleportCompleted?.Invoke(transportingObj, destinationPortal);
             if (destinationPortal != null)
@@ -278,120 +236,33 @@ public class PortalTower2D : MonoBehaviour
             currentlyTransportingObject = null;
     }
 
-    private GameObject SpawnParticlePrefab(Vector3 spawnPos, string targetName)
+    private static void ResetRigidbodyVelocity(Rigidbody2D targetRb)
     {
-        if (teleportParticlePrefab != null)
-        {
-            GameObject instance = Instantiate(teleportParticlePrefab, spawnPos, Quaternion.identity);
-            instance.SetActive(true);
-            return instance;
-        }
+        if (targetRb == null || targetRb.bodyType == RigidbodyType2D.Static)
+            return;
 
-        // Fallback runtime ParticleSystem if no prefab was assigned in the Inspector
-        GameObject fallbackObj = new GameObject($"{targetName}_PortalTeleportParticles");
-        fallbackObj.transform.position = spawnPos;
-
-        ParticleSystem ps = fallbackObj.AddComponent<ParticleSystem>();
-        var main = ps.main;
-        main.loop = true;
-        main.startLifetime = 0.45f;
-        main.startSpeed = 1.5f;
-        main.startSize = 0.22f;
-        main.simulationSpace = ParticleSystemSimulationSpace.World;
-
-        var emission = ps.emission;
-        emission.rateOverTime = 35f;
-
-        var shape = ps.shape;
-        shape.shapeType = ParticleSystemShapeType.Circle;
-        shape.radius = 0.25f;
-
-        return fallbackObj;
+        targetRb.linearVelocity = Vector2.zero;
+        targetRb.angularVelocity = 0f;
     }
 
-    /// <summary>
-    /// Finds the closest active PortalTower2D within maxPortalLinkRange.
-    /// </summary>
-    public PortalTower2D FindClosestPortalInRange()
-    {
-        Vector2 myPos = GetAnchorWorldPosition();
-        float maxRangeSqr = maxPortalLinkRange * maxPortalLinkRange;
+    #endregion
 
-        if (linkedPortalOverride != null && linkedPortalOverride != this && linkedPortalOverride.isActiveAndEnabled)
-        {
-            float overrideSqrDist = ((Vector2)linkedPortalOverride.GetAnchorWorldPosition() - myPos).sqrMagnitude;
-            if (overrideSqrDist <= maxRangeSqr)
-            {
-                return linkedPortalOverride;
-            }
-        }
-
-        PortalTower2D closest = null;
-        float closestSqrDist = maxRangeSqr;
-
-        if (Application.isPlaying)
-        {
-            for (int i = 0; i < s_activePortals.Count; i++)
-            {
-                PortalTower2D candidate = s_activePortals[i];
-                if (!IsValidDestinationPortal(candidate))
-                    continue;
-
-                float sqrDist = ((Vector2)candidate.GetAnchorWorldPosition() - myPos).sqrMagnitude;
-                if (sqrDist <= closestSqrDist)
-                {
-                    closestSqrDist = sqrDist;
-                    closest = candidate;
-                }
-            }
-        }
-        else
-        {
-            PortalTower2D[] scenePortals = FindObjectsByType<PortalTower2D>(FindObjectsSortMode.None);
-            for (int i = 0; i < scenePortals.Length; i++)
-            {
-                PortalTower2D candidate = scenePortals[i];
-                if (!IsValidDestinationPortal(candidate))
-                    continue;
-
-                float sqrDist = ((Vector2)candidate.GetAnchorWorldPosition() - myPos).sqrMagnitude;
-                if (sqrDist <= closestSqrDist)
-                {
-                    closestSqrDist = sqrDist;
-                    closest = candidate;
-                }
-            }
-        }
-
-        return closest;
-    }
-
-    private bool IsValidDestinationPortal(PortalTower2D candidate)
-    {
-        if (candidate == null || candidate == this || !candidate.isActiveAndEnabled)
-            return false;
-
-        if (!string.IsNullOrEmpty(portalNetworkID) && candidate.portalNetworkID != portalNetworkID)
-            return false;
-
-        return true;
-    }
+    #region Object Resolution
 
     private GameObject ResolveTeleportableObject(Collider2D col)
     {
-        if (col == null) return null;
+        if (col == null)
+            return null;
 
         GameObject candidate = col.attachedRigidbody != null ? col.attachedRigidbody.gameObject : col.gameObject;
         if (candidate == gameObject || candidate.transform.IsChildOf(transform) || transform.IsChildOf(candidate.transform))
             return null;
 
-        // Check LayerMask on candidate or collider GameObject
-        bool layerValid = ((teleportableLayers.value & (1 << candidate.layer)) != 0) ||
-                          ((teleportableLayers.value & (1 << col.gameObject.layer)) != 0);
+        bool layerValid = IsInLayerMask(candidate.layer, teleportableLayers) ||
+                          IsInLayerMask(col.gameObject.layer, teleportableLayers);
         if (!layerValid)
             return null;
 
-        // If no tags are specified, allow any object matching teleportableLayers
         if (teleportableTags == null || teleportableTags.Count == 0)
             return candidate;
 
@@ -413,6 +284,56 @@ public class PortalTower2D : MonoBehaviour
         return null;
     }
 
+    private static bool IsInLayerMask(int layer, LayerMask mask) => (mask.value & (1 << layer)) != 0;
+
+    #endregion
+
+    #region Portal Linking & Positioning
+
+    public PortalTower2D FindClosestPortalInRange()
+    {
+        Vector2 myPos = GetAnchorWorldPosition();
+        float maxRangeSqr = maxPortalLinkRange * maxPortalLinkRange;
+
+        if (IsValidDestinationPortal(linkedPortalOverride))
+        {
+            float overrideSqrDist = ((Vector2)linkedPortalOverride.GetAnchorWorldPosition() - myPos).sqrMagnitude;
+            if (overrideSqrDist <= maxRangeSqr)
+                return linkedPortalOverride;
+        }
+
+        IReadOnlyList<PortalTower2D> portals = Application.isPlaying
+            ? (IReadOnlyList<PortalTower2D>)s_activePortals
+            : FindObjectsByType<PortalTower2D>(FindObjectsSortMode.None);
+
+        PortalTower2D closest = null;
+        float closestSqrDist = maxRangeSqr;
+
+        for (int i = 0; i < portals.Count; i++)
+        {
+            PortalTower2D candidate = portals[i];
+            if (!IsValidDestinationPortal(candidate))
+                continue;
+
+            float sqrDist = ((Vector2)candidate.GetAnchorWorldPosition() - myPos).sqrMagnitude;
+            if (sqrDist <= closestSqrDist)
+            {
+                closestSqrDist = sqrDist;
+                closest = candidate;
+            }
+        }
+
+        return closest;
+    }
+
+    private bool IsValidDestinationPortal(PortalTower2D candidate)
+    {
+        if (candidate == null || candidate == this || !candidate.isActiveAndEnabled)
+            return false;
+
+        return string.IsNullOrEmpty(portalNetworkID) || candidate.portalNetworkID == portalNetworkID;
+    }
+
     public Vector3 GetAnchorWorldPosition()
     {
         return portalAnchorPoint != null ? portalAnchorPoint.position : transform.position;
@@ -424,20 +345,95 @@ public class PortalTower2D : MonoBehaviour
         return anchor.position + new Vector3(exitPositionOffset.x, exitPositionOffset.y, 0f);
     }
 
-    private void OnDrawGizmos()
+    #endregion
+
+    #region Particle System Helpers
+
+    private GameObject SpawnParticlePrefab(Vector3 spawnPos, string targetName)
     {
-        if (!showGizmos || drawGizmosOnlyWhenSelected)
+        if (teleportParticlePrefab != null)
+        {
+            GameObject instance = Instantiate(teleportParticlePrefab, spawnPos, Quaternion.identity);
+            instance.SetActive(true);
+            return instance;
+        }
+
+        GameObject fallbackObj = new GameObject($"{targetName}_PortalTeleportParticles");
+        fallbackObj.transform.position = spawnPos;
+
+        ParticleSystem ps = fallbackObj.AddComponent<ParticleSystem>();
+        var main = ps.main;
+        main.loop = true;
+        main.startLifetime = 0.45f;
+        main.startSpeed = 1.5f;
+        main.startSize = 0.22f;
+        main.simulationSpace = ParticleSystemSimulationSpace.World;
+
+        var emission = ps.emission;
+        emission.rateOverTime = 35f;
+
+        var shape = ps.shape;
+        shape.shapeType = ParticleSystemShapeType.Circle;
+        shape.radius = 0.25f;
+
+        return fallbackObj;
+    }
+
+    private static ParticleSystem[] PlayAllParticleSystems(GameObject particleObj)
+    {
+        if (particleObj == null)
+            return null;
+
+        ParticleSystem[] systems = particleObj.GetComponentsInChildren<ParticleSystem>(true);
+        for (int i = 0; i < systems.Length; i++)
+        {
+            if (systems[i] != null)
+            {
+                systems[i].gameObject.SetActive(true);
+                systems[i].Play(true);
+            }
+        }
+
+        return systems;
+    }
+
+    private void CleanupParticlePrefab(GameObject particleObj, ParticleSystem[] particleSystems)
+    {
+        if (particleObj == null)
             return;
 
-        DrawPortalGizmos();
+        if (particleDestroyDelay <= 0.001f)
+        {
+            Destroy(particleObj);
+            return;
+        }
+
+        if (particleSystems != null)
+        {
+            for (int i = 0; i < particleSystems.Length; i++)
+            {
+                if (particleSystems[i] != null)
+                    particleSystems[i].Stop(true, ParticleSystemStopBehavior.StopEmitting);
+            }
+        }
+
+        Destroy(particleObj, particleDestroyDelay);
+    }
+
+    #endregion
+
+    #region Gizmos
+
+    private void OnDrawGizmos()
+    {
+        if (showGizmos && !drawGizmosOnlyWhenSelected)
+            DrawPortalGizmos();
     }
 
     private void OnDrawGizmosSelected()
     {
-        if (!showGizmos || !drawGizmosOnlyWhenSelected)
-            return;
-
-        DrawPortalGizmos();
+        if (showGizmos && drawGizmosOnlyWhenSelected)
+            DrawPortalGizmos();
     }
 
     private void DrawPortalGizmos()
@@ -446,17 +442,14 @@ public class PortalTower2D : MonoBehaviour
         Vector3 exitPos = GetExitWorldPosition();
         PortalTower2D closestPortal = FindClosestPortalInRange();
 
-        // 1. Draw Portal Range Circle
         Gizmos.color = closestPortal != null ? rangeGizmoColor : noLinkGizmoColor;
         DrawWireCircle2D(anchorPos, Mathf.Max(0f, maxPortalLinkRange), Mathf.Max(16, gizmoCircleSegments));
 
-        // 2. Draw Exit Position Offset Marker
         Gizmos.color = exitPointGizmoColor;
         DrawWireCircle2D(exitPos, 0.14f, 20);
         Gizmos.DrawWireCube(exitPos, new Vector3(0.18f, 0.18f, 0.02f));
         Gizmos.DrawLine(anchorPos, exitPos);
 
-        // 3. Draw Link Line & Arrow to the Closest Portal in Range
         if (closestPortal != null)
         {
             Vector3 targetExitPos = closestPortal.GetExitWorldPosition();
@@ -469,7 +462,7 @@ public class PortalTower2D : MonoBehaviour
                 Vector3 midPoint = Vector3.Lerp(anchorPos, targetExitPos, 0.55f);
                 Vector2 dirNorm = dir.normalized;
                 Vector2 perp = new Vector2(-dirNorm.y, dirNorm.x);
-                float headLen = 0.35f;
+                const float headLen = 0.35f;
                 Gizmos.DrawLine(midPoint, midPoint - (Vector3)(dirNorm * headLen) + (Vector3)(perp * headLen * 0.55f));
                 Gizmos.DrawLine(midPoint, midPoint - (Vector3)(dirNorm * headLen) - (Vector3)(perp * headLen * 0.55f));
             }
@@ -478,7 +471,8 @@ public class PortalTower2D : MonoBehaviour
 
     private static void DrawWireCircle2D(Vector2 center, float radius, int segments)
     {
-        if (radius <= 0f || segments < 3) return;
+        if (radius <= 0f || segments < 3)
+            return;
 
         float angleStep = (Mathf.PI * 2f) / segments;
         Vector3 prevPoint = new Vector3(center.x + radius, center.y, 0f);
@@ -495,5 +489,6 @@ public class PortalTower2D : MonoBehaviour
             prevPoint = nextPoint;
         }
     }
-}
 
+    #endregion
+}

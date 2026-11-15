@@ -63,7 +63,7 @@ public class WolfObjectPickup2D : MonoBehaviour
     public bool ignoreWolfCollisionsWhileHeld = true;
 
     [Tooltip("If true, disables the picked-up object's Collider2D entirely while held and re-enables it on drop.")]
-    public bool disableObjectCollidersWhileHeld = false;
+    public bool disableObjectCollidersWhileHeld = true;
 
     [Header("Drop & Throw Settings")]
     [Tooltip("Local offset from Hold Point where the object is placed when dropped.")]
@@ -287,7 +287,7 @@ public class WolfObjectPickup2D : MonoBehaviour
         heldOriginalParent = target.transform.parent;
         heldOriginalScale = target.transform.lossyScale;
 
-        // Cache and configure colliders
+        // Cache and disable colliders when picked up
         heldObjectColliders.Clear();
         heldCollidersOriginalEnabled.Clear();
         target.GetComponentsInChildren(true, heldObjectColliders);
@@ -298,21 +298,7 @@ public class WolfObjectPickup2D : MonoBehaviour
             if (col == null) continue;
 
             heldCollidersOriginalEnabled.Add(col.enabled);
-
-            if (disableObjectCollidersWhileHeld)
-            {
-                col.enabled = false;
-            }
-            else if (ignoreWolfCollisionsWhileHeld && wolfColliders != null)
-            {
-                for (int w = 0; w < wolfColliders.Length; w++)
-                {
-                    if (wolfColliders[w] != null)
-                    {
-                        Physics2D.IgnoreCollision(col, wolfColliders[w], true);
-                    }
-                }
-            }
+            col.enabled = false;
         }
 
         // Cache and configure Rigidbody2D
@@ -387,27 +373,13 @@ public class WolfObjectPickup2D : MonoBehaviour
         // Apply drop offset in facing direction
         droppedObj.transform.position = GetDropWorldPosition();
 
-        // Restore colliders and re-enable collisions with the Wolf
+        // Enable colliders when thrown/dropped
         for (int i = 0; i < heldObjectColliders.Count; i++)
         {
             Collider2D col = heldObjectColliders[i];
             if (col == null) continue;
 
-            if (i < heldCollidersOriginalEnabled.Count)
-            {
-                col.enabled = heldCollidersOriginalEnabled[i];
-            }
-
-            if (ignoreWolfCollisionsWhileHeld && wolfColliders != null)
-            {
-                for (int w = 0; w < wolfColliders.Length; w++)
-                {
-                    if (wolfColliders[w] != null)
-                    {
-                        Physics2D.IgnoreCollision(col, wolfColliders[w], false);
-                    }
-                }
-            }
+            col.enabled = true;
         }
 
         // Restore Rigidbody2D and apply release velocity

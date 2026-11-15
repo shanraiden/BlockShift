@@ -341,12 +341,16 @@ public class ProceduralFKLeg2D : MonoBehaviour
 
     private static readonly Dictionary<Transform, SharedFKClock> s_rigClocks = new Dictionary<Transform, SharedFKClock>();
     private static readonly Dictionary<Transform, SharedRootBoneState> s_rootBoneStates = new Dictionary<Transform, SharedRootBoneState>();
+    private static readonly List<ProceduralFKLeg2D> s_activeInstances = new List<ProceduralFKLeg2D>();
 
     private Quaternion[] initialLocalRotations;
     private Quaternion[] currentLocalRotations;
+    private Vector3[] initialLocalPositions;
     private Vector3 initialHipLocalPos;
     private Transform rigRoot;
+    private bool hasCachedInitialPose;
     private bool wasActiveLastFrame;
+    private bool snapOnNextUpdate = true;
     private float legActiveElapsed;
     private float stillTimer;
 
@@ -364,6 +368,8 @@ public class ProceduralFKLeg2D : MonoBehaviour
     private Vector3 initialFollowBoneLocalPos;
     private Quaternion initialFollowBoneLocalRot;
     private Quaternion currentFollowBoneLocalRot;
+    private Vector2 currentFollowBoneRootPos;
+    private bool hasFollowBoneRootPos;
 
     public bool IsStill
     {
@@ -439,14 +445,64 @@ public class ProceduralFKLeg2D : MonoBehaviour
             runningPreset.dParabolaHeightMultiplier = 1.2f;
     }
 
+    void Awake()
+    {
+        EnsurePresetDefaults();
+        EnsureInitialPoseCached();
+    }
+
     void Start()
     {
         EnsurePresetDefaults();
-        CacheInitialPose();
+        EnsureInitialPoseCached();
+    }
+
+    void OnEnable()
+    {
+        if (!s_activeInstances.Contains(this))
+            s_activeInstances.Add(this);
+
+        EnsurePresetDefaults();
+        EnsureInitialPoseCached();
+        ResetPoseForTeleport();
+    }
+
+    void OnDisable()
+    {
+        s_activeInstances.Remove(this);
+        if (hasCachedInitialPose)
+        {
+            ResetPoseForTeleport();
+        }
+    }
+
+    void OnDestroy()
+    {
+        s_activeInstances.Remove(this);
+    }
+
+    private void EnsureInitialPoseCached()
+    {
+        if (hasCachedInitialPose &&
+            legBones != null &&
+            initialLocalRotations != null &&
+            initialLocalRotations.Length == legBones.Count &&
+            initialLocalPositions != null &&
+            initialLocalPositions.Length == legBones.Count)
+        {
+            return;
+        }
+
+        CacheInitialPoseInternal(forceOverwriteSharedState: false);
     }
 
     [ContextMenu("Recapture Initial Pose")]
     public void CacheInitialPose()
+    {
+        CacheInitialPoseInternal(forceOverwriteSharedState: true);
+    }
+
+    private void CacheInitialPoseInternal(bool forceOverwriteSharedState)
     {
         rigRoot = transform.root != null ? transform.root : transform;
 
@@ -454,6 +510,7 @@ public class ProceduralFKLeg2D : MonoBehaviour
         {
             initialLocalRotations = new Quaternion[legBones.Count];
             currentLocalRotations = new Quaternion[legBones.Count];
+            initialLocalPositions = new Vector3[legBones.Count];
 
             for (int i = 0; i < legBones.Count; i++)
             {
@@ -461,6 +518,7 @@ public class ProceduralFKLeg2D : MonoBehaviour
                 {
                     initialLocalRotations[i] = legBones[i].localRotation;
                     currentLocalRotations[i] = legBones[i].localRotation;
+                    initialLocalPositions[i] = legBones[i].localPosition;
                 }
             }
 
@@ -470,11 +528,92 @@ public class ProceduralFKLeg2D : MonoBehaviour
             }
         }
 
-        RegisterRootBoneState(rootBone, overwriteExisting: true);
-        RegisterRootBoneState(movingPreset.rootBoneOverride, overwriteExisting: true);
-        RegisterRootBoneState(runningPreset.rootBoneOverride, overwriteExisting: true);
+        RegisterRootBoneState(rootBone, overwriteExisting: forceOverwriteSharedState);
+        RegisterRootBoneState(movingPreset.rootBoneOverride, overwriteExisting: forceOverwriteSharedState);
+        RegisterRootBoneState(runningPreset.rootBoneOverride, overwriteExisting: forceOverwriteSharedState);
 
+        hasCachedInitialPose = true;
         CacheFollowBoneGeometry();
+    }
+
+    /// <summary>
+    /// Immediately resets all leg bones, follow bones, and shared root bones back to their initial rest pose.
+    /// Called on OnEnable/OnDisable and during Portal/Shadow teleportation to prevent bone stretching or erratic motion.
+    /// </summary>
+    public void ResetPoseForTeleport()
+    {
+        EnsureInitialPoseCached();
+
+        wasActiveLastFrame = false;
+        snapOnNextUpdate = true;
+        hasFollowBoneRootPos = false;
+        legActiveElapsed = 0f;
+        stillTimer = 0f;
+
+        if (rigRoot != null && s_rigClocks.TryGetValue(rigRoot, out SharedFKClock clock))
+        {
+            clock.lastUpdatedFrame = -1;
+            clock.elapsedActiveTime = 0f;
+            clock.accumulatedCycles = 0f;
+        }
+
+        if (legBones != null && initialLocalRotations != null)
+        {
+            int count = Mathf.Min(legBones.Count, initialLocalRotations.Length);
+            for (int i = 0; i < count; i++)
+            {
+                if (legBones[i] != null)
+                {
+                    currentLocalRotations[i] = initialLocalRotations[i];
+                    legBones[i].localRotation = initialLocalRotations[i];
+                    if (initialLocalPositions != null && i < initialLocalPositions.Length)
+                    {
+                        legBones[i].localPosition = initialLocalPositions[i];
+                    }
+                }
+            }
+
+            if (legBones.Count > 0 && legBones[0] != null)
+            {
+                legBones[0].localPosition = initialHipLocalPos;
+            }
+        }
+
+        Transform activeFollow = GetActiveFollowBone();
+        if (activeFollow != null && cachedFollowBone == activeFollow)
+        {
+            currentFollowBoneLocalRot = initialFollowBoneLocalRot;
+            activeFollow.localRotation = initialFollowBoneLocalRot;
+            activeFollow.localPosition = initialFollowBoneLocalPos;
+            lastParabolaTargetWorld = activeFollow.position;
+        }
+
+        ResetRootBoneImmediate(rootBone);
+        ResetRootBoneImmediate(movingPreset.rootBoneOverride);
+        ResetRootBoneImmediate(runningPreset.rootBoneOverride);
+    }
+
+    private void ResetRootBoneImmediate(Transform targetRoot)
+    {
+        if (targetRoot == null) return;
+        if (!s_rootBoneStates.TryGetValue(targetRoot, out SharedRootBoneState state) || state == null)
+            return;
+
+        state.lastUpdatedFrame = -1;
+        state.currentLocalRot = state.initialLocalRot;
+        targetRoot.localPosition = state.initialLocalPos;
+        targetRoot.localRotation = state.initialLocalRot;
+
+        Vector3 currentScale = targetRoot.localScale;
+        float signX = currentScale.x < 0f ? -1f : 1f;
+        float signY = currentScale.y < 0f ? -1f : 1f;
+        float signZ = currentScale.z < 0f ? -1f : 1f;
+
+        targetRoot.localScale = new Vector3(
+            signX * state.initialAbsLocalScale.x,
+            signY * state.initialAbsLocalScale.y,
+            signZ * state.initialAbsLocalScale.z
+        );
     }
 
     private SharedRootBoneState RegisterRootBoneState(Transform targetRoot, bool overwriteExisting = false)
@@ -510,8 +649,30 @@ public class ProceduralFKLeg2D : MonoBehaviour
             rigRoot = transform.root != null ? transform.root : transform;
 
         cachedFollowBone = GetActiveFollowBone();
+
+        // Temporarily restore rest pose on legBones and registered rootBones so geometry is always measured from clean rest pose
+        Quaternion[] savedRotations = null;
+        Vector3[] savedPositions = null;
+        if (legBones != null && initialLocalRotations != null && initialLocalPositions != null)
+        {
+            int count = Mathf.Min(legBones.Count, initialLocalRotations.Length);
+            savedRotations = new Quaternion[count];
+            savedPositions = new Vector3[count];
+            for (int i = 0; i < count; i++)
+            {
+                if (legBones[i] != null)
+                {
+                    savedRotations[i] = legBones[i].localRotation;
+                    savedPositions[i] = legBones[i].localPosition;
+                    legBones[i].localRotation = initialLocalRotations[i];
+                    legBones[i].localPosition = initialLocalPositions[i];
+                }
+            }
+        }
+
         if (cachedFollowBone != null)
         {
+            // Only capture initialFollowBoneLocalPos/Rot if cachedFollowBone is not already in legBones (or use its restored rest pose)
             initialFollowBoneLocalPos = cachedFollowBone.localPosition;
             initialFollowBoneLocalRot = cachedFollowBone.localRotation;
             currentFollowBoneLocalRot = cachedFollowBone.localRotation;
@@ -542,6 +703,19 @@ public class ProceduralFKLeg2D : MonoBehaviour
                 defaultKneeBendSign = Mathf.Abs(restShinRelAngleRad) > 0.001f ? Mathf.Sign(restShinRelAngleRad) : 1f;
             }
         }
+
+        // Restore live rotations/positions if we were already mid-animation
+        if (savedRotations != null && legBones != null)
+        {
+            for (int i = 0; i < savedRotations.Length; i++)
+            {
+                if (legBones[i] != null)
+                {
+                    legBones[i].localRotation = savedRotations[i];
+                    legBones[i].localPosition = savedPositions[i];
+                }
+            }
+        }
     }
 
     void LateUpdate()
@@ -549,9 +723,9 @@ public class ProceduralFKLeg2D : MonoBehaviour
         bool hasLegBones = legBones != null && legBones.Count > 0;
         if (!hasLegBones && dParabola.customFollowBone == null) return;
 
-        if (hasLegBones && (initialLocalRotations == null || initialLocalRotations.Length != legBones.Count))
+        if (!hasCachedInitialPose || (hasLegBones && (initialLocalRotations == null || initialLocalRotations.Length != legBones.Count)))
         {
-            CacheInitialPose();
+            EnsureInitialPoseCached();
         }
         else if (cachedFollowBone != GetActiveFollowBone())
         {
@@ -561,14 +735,36 @@ public class ProceduralFKLeg2D : MonoBehaviour
         float dt = Time.deltaTime;
         if (dt <= 0f) return;
 
+        Transform activeFollowBone = GetActiveFollowBone();
+
+        // Always restore non-hip bone localPositions (including activeFollowBone) to their rest local positions before FK rotations
+        // so previous-frame DirectBonePositionFollow offsets are never swung/centrifuged by parent bone rotations
+        if (hasLegBones && initialLocalPositions != null)
+        {
+            int count = Mathf.Min(legBones.Count, initialLocalPositions.Length);
+            for (int i = 1; i < count; i++)
+            {
+                if (legBones[i] != null)
+                {
+                    legBones[i].localPosition = initialLocalPositions[i];
+                }
+            }
+        }
+        if (activeFollowBone != null && (!hasLegBones || activeFollowBone != legBones[0]))
+        {
+            activeFollowBone.localPosition = initialFollowBoneLocalPos;
+        }
+
         // If isStill is checked, or neither isMoving nor isRunning is active, run Still Motion
         bool shouldRunStillMotion = isStill || (!isMoving && !isRunning);
 
         if (shouldRunStillMotion)
         {
             wasActiveLastFrame = false;
+            hasFollowBoneRootPos = false;
             legActiveElapsed = 0f;
             ApplyStillMotion(dt);
+            snapOnNextUpdate = false;
             return;
         }
 
@@ -595,6 +791,7 @@ public class ProceduralFKLeg2D : MonoBehaviour
 
         activeCycleSpeed = Mathf.Max(0.001f, activeCycleSpeed);
 
+        bool justActivated = !wasActiveLastFrame || snapOnNextUpdate;
         if (!wasActiveLastFrame)
         {
             wasActiveLastFrame = true;
@@ -608,6 +805,7 @@ public class ProceduralFKLeg2D : MonoBehaviour
         if (timingOffsetMode == TimingOffsetMode.TimeDelayWithStartWait && legActiveElapsed < timingOffset)
         {
             ApplyStillMotion(dt);
+            snapOnNextUpdate = false;
             return;
         }
 
@@ -672,8 +870,8 @@ public class ProceduralFKLeg2D : MonoBehaviour
         }
 
         float pawFollowPhase = warpedPhase - pawPhaseLag;
-        Transform activeFollowBone = GetActiveFollowBone();
         bool followBoneInChain = false;
+        float effectiveSmoothSpeed = snapOnNextUpdate ? 0f : activeSmoothSpeed;
 
         // Apply rotations to Thigh (0), Shin (1), Paw (2), and any extra chain bones (3+)
         if (hasLegBones)
@@ -711,7 +909,7 @@ public class ProceduralFKLeg2D : MonoBehaviour
                 }
 
                 Quaternion targetRot = initialLocalRotations[i] * Quaternion.Euler(0f, 0f, targetAngle);
-                ApplyBoneRotation(i, targetRot, activeSmoothing, activeSmoothSpeed, activeCycleSpeed, dt);
+                ApplyBoneRotation(i, targetRot, activeSmoothing, effectiveSmoothSpeed, activeCycleSpeed, dt);
             }
         }
 
@@ -719,32 +917,13 @@ public class ProceduralFKLeg2D : MonoBehaviour
         if (followDParabola && activeFollowBone != null && !followBoneInChain)
         {
             Quaternion targetRot = initialFollowBoneLocalRot * Quaternion.Euler(0f, 0f, pawAngle);
-            float effectiveSpeed = activeSmoothSpeed * Mathf.Max(1f, activeCycleSpeed * 0.5f);
-            float t = activeSmoothSpeed <= 0f ? 1f : (1f - Mathf.Exp(-effectiveSpeed * dt));
+            float effectiveSpeed = effectiveSmoothSpeed * Mathf.Max(1f, activeCycleSpeed * 0.5f);
+            float t = effectiveSmoothSpeed <= 0f ? 1f : (1f - Mathf.Exp(-effectiveSpeed * dt));
             currentFollowBoneLocalRot = Quaternion.Slerp(currentFollowBoneLocalRot, targetRot, t);
             activeFollowBone.localRotation = currentFollowBoneLocalRot;
         }
 
-        // If DirectBonePositionFollow or lockFollowBoneToPathPosition is enabled, move the Follow Bone directly onto the D-Parabola point
-        if (followDParabola && activeFollowBone != null &&
-            (dParabola.mode == DParabolaMode.DirectBonePositionFollow || dParabola.lockFollowBoneToPathPosition))
-        {
-            float effectiveSpeed = activeSmoothSpeed * Mathf.Max(1f, activeCycleSpeed);
-            if (activeSmoothSpeed <= 0f)
-            {
-                activeFollowBone.position = lastParabolaTargetWorld;
-            }
-            else if (activeSmoothing == SmoothingType.Linear)
-            {
-                activeFollowBone.position = Vector3.MoveTowards(activeFollowBone.position, lastParabolaTargetWorld, effectiveSpeed * dt);
-            }
-            else
-            {
-                activeFollowBone.position = Vector3.Lerp(activeFollowBone.position, lastParabolaTargetWorld, 1f - Mathf.Exp(-effectiveSpeed * dt));
-            }
-        }
-
-        // Apply Leg Root Bone (legBones[0]) position offset + optional vertical hip bounce
+        // Apply Leg Root Bone (legBones[0]) position offset + optional vertical hip bounce BEFORE Follow Bone position solve
         if (hasLegBones && legBones[0] != null)
         {
             float bobY = enableHipBob ? (Mathf.Sin(warpedPhase * 2f + hipBobPhaseOffset) * hipBobAmplitude) : 0f;
@@ -754,18 +933,104 @@ public class ProceduralFKLeg2D : MonoBehaviour
                 0f
             );
             Vector3 targetHipPos = initialHipLocalPos + legRootOffset;
-            float posLerpT = activeSmoothSpeed <= 0f ? 1f : (1f - Mathf.Exp(-activeSmoothSpeed * dt));
+            float posLerpT = effectiveSmoothSpeed <= 0f ? 1f : (1f - Mathf.Exp(-effectiveSmoothSpeed * dt));
             legBones[0].localPosition = Vector3.Lerp(legBones[0].localPosition, targetHipPos, posLerpT);
         }
 
+        // If DirectBonePositionFollow or lockFollowBoneToPathPosition is enabled, move the Follow Bone in rigRoot local space
+        // (never raw world space, which lags behind character movement/teleports) and clamp local stretch relative to parent bone
+        if (followDParabola && activeFollowBone != null &&
+            (dParabola.mode == DParabolaMode.DirectBonePositionFollow || dParabola.lockFollowBoneToPathPosition))
+        {
+            Transform rootSpace = rigRoot != null ? rigRoot : transform;
+            Vector2 targetRootPos = rootSpace.InverseTransformPoint(lastParabolaTargetWorld);
+            float effectiveSpeed = effectiveSmoothSpeed * Mathf.Max(1f, activeCycleSpeed);
+
+            if (!hasFollowBoneRootPos || justActivated || effectiveSmoothSpeed <= 0f)
+            {
+                currentFollowBoneRootPos = targetRootPos;
+                hasFollowBoneRootPos = true;
+            }
+            else if (activeSmoothing == SmoothingType.Linear)
+            {
+                currentFollowBoneRootPos = Vector2.MoveTowards(currentFollowBoneRootPos, targetRootPos, effectiveSpeed * dt);
+            }
+            else
+            {
+                currentFollowBoneRootPos = Vector2.Lerp(currentFollowBoneRootPos, targetRootPos, 1f - Mathf.Exp(-effectiveSpeed * dt));
+            }
+
+            Vector3 desiredWorldPos = rootSpace.TransformPoint(currentFollowBoneRootPos);
+            if (activeFollowBone.parent != null)
+            {
+                Vector3 desiredLocalPos = activeFollowBone.parent.InverseTransformPoint(desiredWorldPos);
+                float restBoneLength = initialFollowBoneLocalPos.magnitude;
+                float maxStretchDelta = Mathf.Max(0.15f, restBoneLength * 0.45f);
+                Vector3 clampedDelta = Vector3.ClampMagnitude(desiredLocalPos - initialFollowBoneLocalPos, maxStretchDelta);
+                activeFollowBone.localPosition = initialFollowBoneLocalPos + clampedDelta;
+            }
+            else
+            {
+                activeFollowBone.position = desiredWorldPos;
+            }
+        }
+
         // Apply Character Root Bone position offset, horizontal body stretch, overall height decrease, and forward lean
-        ApplyRootBonePresetTransform(in activePreset, warpedPhase, swingDir, activeSmoothSpeed, dt);
+        ApplyRootBonePresetTransform(in activePreset, warpedPhase, swingDir, effectiveSmoothSpeed, dt);
+        snapOnNextUpdate = false;
+    }
+
+    private ProceduralFKLeg2D FindActiveHipOwner(Transform targetRoot)
+    {
+        if (targetRoot == null) return null;
+        for (int i = 0; i < s_activeInstances.Count; i++)
+        {
+            ProceduralFKLeg2D inst = s_activeInstances[i];
+            if (inst != null && inst.isActiveAndEnabled && inst.legBones != null && inst.legBones.Count > 0 && inst.legBones[0] == targetRoot)
+            {
+                return inst;
+            }
+        }
+        return null;
+    }
+
+    private ProceduralFKLeg2D FindPrimaryRootDriver(Transform targetRoot)
+    {
+        if (targetRoot == null) return null;
+        ProceduralFKLeg2D fallback = null;
+        for (int i = 0; i < s_activeInstances.Count; i++)
+        {
+            ProceduralFKLeg2D inst = s_activeInstances[i];
+            if (inst == null || !inst.isActiveAndEnabled || inst.rigRoot != rigRoot)
+                continue;
+
+            bool instMovingOrRunning = !inst.isStill && (inst.isMoving || inst.isRunning);
+            if (!instMovingOrRunning)
+                continue;
+
+            GaitPreset instPreset = inst.isRunning ? inst.runningPreset : inst.movingPreset;
+            if (inst.GetActiveRootBone(in instPreset) != targetRoot)
+                continue;
+
+            if (fallback == null)
+                fallback = inst;
+
+            // Prefer a leg component that does NOT use targetRoot as its own legBones[0]
+            if (inst.legBones == null || inst.legBones.Count == 0 || inst.legBones[0] != targetRoot)
+                return inst;
+        }
+        return fallback;
     }
 
     private void ApplyRootBonePresetTransform(in GaitPreset preset, float warpedPhase, float swingDir, float smoothSpeed, float dt)
     {
         Transform targetRoot = GetActiveRootBone(in preset);
         if (targetRoot == null) return;
+
+        // Ensure deterministic driver selection regardless of Unity's OnEnable/LateUpdate hierarchy execution order
+        ProceduralFKLeg2D primaryDriver = FindPrimaryRootDriver(targetRoot);
+        if (primaryDriver != null && primaryDriver != this)
+            return;
 
         SharedRootBoneState state = RegisterRootBoneState(targetRoot, overwriteExisting: false);
         if (state == null || state.lastUpdatedFrame == Time.frameCount)
@@ -774,13 +1039,19 @@ public class ProceduralFKLeg2D : MonoBehaviour
         state.lastUpdatedFrame = Time.frameCount;
         float lerpT = smoothSpeed <= 0f ? 1f : (1f - Mathf.Exp(-smoothSpeed * dt));
 
-        // 1. Root Bone local position offset (e.g. negative Y lowers the height of the overall sprite while running)
-        Vector3 targetLocalPos = state.initialLocalPos + new Vector3(
-            preset.rootBonePositionOffset.x * swingDir,
-            preset.rootBonePositionOffset.y,
-            0f
-        );
-        targetRoot.localPosition = Vector3.Lerp(targetRoot.localPosition, targetLocalPos, lerpT);
+        // Check if targetRoot is also animated as legBones[0] by an active ProceduralFKLeg2D (e.g. Body/bone_1 on Body)
+        ProceduralFKLeg2D hipOwner = FindActiveHipOwner(targetRoot);
+
+        // 1. Root Bone local position offset (only apply directly if no active hipOwner is animating targetRoot.localPosition as legBones[0])
+        if (hipOwner == null)
+        {
+            Vector3 targetLocalPos = state.initialLocalPos + new Vector3(
+                preset.rootBonePositionOffset.x * swingDir,
+                preset.rootBonePositionOffset.y,
+                0f
+            );
+            targetRoot.localPosition = Vector3.Lerp(targetRoot.localPosition, targetLocalPos, lerpT);
+        }
 
         // 2. Body Stretch & Height Decrease (X > 1 stretches body horizontally, Y < 1 decreases overall sprite height)
         float baseStretchX = preset.bodyStretchScale.x > 0.001f ? preset.bodyStretchScale.x : 1f;
@@ -790,6 +1061,18 @@ public class ProceduralFKLeg2D : MonoBehaviour
         float pulseWave = Mathf.Sin(warpedPhase * 2f) * preset.dynamicStretchPulse;
         float finalStretchX = Mathf.Max(0.1f, baseStretchX + pulseWave);
         float finalStretchY = Mathf.Max(0.1f, baseStretchY - pulseWave * 0.5f);
+
+        // Prevent non-uniform scale skew/shear if targetRoot is a rotated bone with child bones (such as Body/bone_1 at -121 deg)
+        if (targetRoot.childCount > 0)
+        {
+            float zAngleRad = state.initialLocalRot.eulerAngles.z * Mathf.Deg2Rad;
+            if (Mathf.Abs(Mathf.Sin(zAngleRad * 2f)) > 0.1f)
+            {
+                float uniformScale = (finalStretchX + finalStretchY) * 0.5f;
+                finalStretchX = uniformScale;
+                finalStretchY = uniformScale;
+            }
+        }
 
         Vector3 currentScale = targetRoot.localScale;
         float signX = currentScale.x < 0f ? -1f : 1f;
@@ -808,10 +1091,13 @@ public class ProceduralFKLeg2D : MonoBehaviour
         float nextAbsZ = Mathf.Lerp(Mathf.Abs(currentScale.z), Mathf.Abs(targetScale.z), lerpT);
         targetRoot.localScale = new Vector3(signX * nextAbsX, signY * nextAbsY, signZ * nextAbsZ);
 
-        // 3. Forward Lean Rotation on Root Bone
-        Quaternion targetRot = state.initialLocalRot * Quaternion.Euler(0f, 0f, preset.rootBoneForwardLeanAngle * swingDir);
-        state.currentLocalRot = Quaternion.Slerp(state.currentLocalRot, targetRot, lerpT);
-        targetRoot.localRotation = state.currentLocalRot;
+        // 3. Forward Lean Rotation on Root Bone (only apply if targetRoot is not animated as legBones[0] by hipOwner)
+        if (hipOwner == null)
+        {
+            Quaternion targetRot = state.initialLocalRot * Quaternion.Euler(0f, 0f, preset.rootBoneForwardLeanAngle * swingDir);
+            state.currentLocalRot = Quaternion.Slerp(state.currentLocalRot, targetRot, lerpT);
+            targetRoot.localRotation = state.currentLocalRot;
+        }
     }
 
     private void ResetRootBoneToStill(Transform targetRoot, float blendRate)
@@ -824,7 +1110,12 @@ public class ProceduralFKLeg2D : MonoBehaviour
 
         state.lastUpdatedFrame = Time.frameCount;
 
-        targetRoot.localPosition = Vector3.Lerp(targetRoot.localPosition, state.initialLocalPos, blendRate);
+        ProceduralFKLeg2D hipOwner = FindActiveHipOwner(targetRoot);
+
+        if (hipOwner == null)
+        {
+            targetRoot.localPosition = Vector3.Lerp(targetRoot.localPosition, state.initialLocalPos, blendRate);
+        }
 
         Vector3 currentScale = targetRoot.localScale;
         float signX = currentScale.x < 0f ? -1f : 1f;
@@ -836,8 +1127,11 @@ public class ProceduralFKLeg2D : MonoBehaviour
         float nextAbsZ = Mathf.Lerp(Mathf.Abs(currentScale.z), state.initialAbsLocalScale.z, blendRate);
         targetRoot.localScale = new Vector3(signX * nextAbsX, signY * nextAbsY, signZ * nextAbsZ);
 
-        state.currentLocalRot = Quaternion.Slerp(state.currentLocalRot, state.initialLocalRot, blendRate);
-        targetRoot.localRotation = state.currentLocalRot;
+        if (hipOwner == null)
+        {
+            state.currentLocalRot = Quaternion.Slerp(state.currentLocalRot, state.initialLocalRot, blendRate);
+            targetRoot.localRotation = state.currentLocalRot;
+        }
     }
 
     /// <summary>
@@ -1125,6 +1419,49 @@ public class ProceduralFKLeg2D : MonoBehaviour
         legBones[index].localRotation = currentLocalRotations[index];
     }
 
+    private float GetEffectiveCycleSpeed()
+    {
+        GaitPreset activePreset = isRunning ? runningPreset : movingPreset;
+        float speed = (useStatePresets || isRunning) ? activePreset.cycleSpeed : cycleSpeed;
+        return Mathf.Max(0.001f, speed);
+    }
+
+    private float ResolveDeterministicClockSpeed(float fallbackCycleSpeed)
+    {
+        float bestLegSpeed = -1f;
+        float bestAnySpeed = -1f;
+
+        for (int i = 0; i < s_activeInstances.Count; i++)
+        {
+            ProceduralFKLeg2D inst = s_activeInstances[i];
+            if (inst == null || !inst.isActiveAndEnabled || inst.rigRoot != rigRoot)
+                continue;
+
+            bool instMovingOrRunning = !inst.isStill && (inst.isMoving || inst.isRunning);
+            if (!instMovingOrRunning)
+                continue;
+
+            float instSpeed = inst.GetEffectiveCycleSpeed();
+            if (instSpeed > bestAnySpeed)
+                bestAnySpeed = instSpeed;
+
+            // Prefer primary leg components (whose legBones[0] is not a shared rootBoneOverride like Body/bone_1)
+            Transform instHip = (inst.legBones != null && inst.legBones.Count > 0) ? inst.legBones[0] : null;
+            bool isSharedRootBone = instHip != null && s_rootBoneStates.ContainsKey(instHip);
+            if (!isSharedRootBone && instSpeed > bestLegSpeed)
+            {
+                bestLegSpeed = instSpeed;
+            }
+        }
+
+        if (bestLegSpeed > 0f)
+            return bestLegSpeed;
+        if (bestAnySpeed > 0f)
+            return bestAnySpeed;
+
+        return fallbackCycleSpeed;
+    }
+
     private SharedFKClock GetAndUpdateSharedClock(float currentCycleSpeed, float dt)
     {
         if (rigRoot == null)
@@ -1144,8 +1481,9 @@ public class ProceduralFKLeg2D : MonoBehaviour
                 clock.accumulatedCycles = 0f;
             }
 
+            float deterministicSpeed = ResolveDeterministicClockSpeed(currentCycleSpeed);
             clock.elapsedActiveTime += dt;
-            clock.accumulatedCycles += dt * currentCycleSpeed;
+            clock.accumulatedCycles += dt * deterministicSpeed;
             clock.lastUpdatedFrame = Time.frameCount;
         }
 

@@ -127,7 +127,7 @@ BoxCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: -0.5999441, y: -0.23997784}
+  m_Offset: {x: -0.19972038, y: -0.23997784}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
@@ -137,7 +137,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 1.6099854, y: 3.7301016}
+  m_Size: {x: 2.4104328, y: 3.7301016}
   m_EdgeRadius: 0
 --- !u!114 &7151458869306507835
 MonoBehaviour:
@@ -158,10 +158,8 @@ MonoBehaviour:
   exitPositionOffset: {x: 0, y: 0}
   teleportableLayers:
     serializedVersion: 2
-    m_Bits: 2056
-  teleportableTags:
-  - Player
-  - EmptyBlock
+    m_Bits: 2184
+  teleportableTags: []
   teleportParticlePrefab: {fileID: 0}
   particleTransportMode: 0
   teleportDuration: 0.65
@@ -178,7 +176,7 @@ MonoBehaviour:
       m_Calls: []
   showGizmos: 1
   drawGizmosOnlyWhenSelected: 0
-  gizmoCircleSegments: 48
+  gizmoCircleSegments: 24
   rangeGizmoColor: {r: 0.35, g: 0.75, b: 1, a: 0.65}
   activeLinkGizmoColor: {r: 0.2, g: 1, b: 0.55, a: 0.95}
   noLinkGizmoColor: {r: 1, g: 0.35, b: 0.3, a: 0.75}
