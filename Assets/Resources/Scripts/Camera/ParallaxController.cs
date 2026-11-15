@@ -79,7 +79,6 @@ public class ParallaxController : MonoBehaviour
 
                 foreach (GameObject childObject in childObjects)
                 {
-                    print(childObject.name);
                     initiateParallexing(childObject, layer, cameraBounds, deltaMovement);
 
                 }

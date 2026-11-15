@@ -9,7 +9,6 @@ public class SpriteShadowCaster2D : MonoBehaviour
 
     [Header("Projection Settings")]
     public Vector2 baseLightDirection = new Vector2(0f, -1f); // Neutral vertical bias
-    public float shadowLength = 2f;
 
     [Header("Transparency / Alpha Settings")]
     [Tooltip("Pixels with alpha at or below this threshold are treated as transparent and will not cast shadows.")]
@@ -78,6 +77,38 @@ public class SpriteShadowCaster2D : MonoBehaviour
     [Tooltip("Cooldown (seconds) after exiting a BlackEternal shadow before the reactivated GameObject can re-enter.")]
     public float shadowExitReentryCooldown = 0.25f;
 
+    [Header("BlackEternal Exit Force Settings (Outward from ShadowCaster)")]
+    [Tooltip("If true, applies an outward exit force to the Particle Player (from this ShadowCaster toward the Player) before re-enabling the Base Player.")]
+    public bool applyExitForce = true;
+
+    [Tooltip("Time (in seconds) to wait after applying the outward exit force on the Particle Player before re-enabling the Base Player.")]
+    [Min(0f)]
+    public float exitEnableDelay = 0.25f;
+
+    [Tooltip("Fallback local direction used only if the Particle Player is at the exact same position as the ShadowCaster.")]
+    public Vector2 localExitForceDirection = new Vector2(0f, 1f);
+
+    [Tooltip("Magnitude of the outward exit force applied to the Particle Player when leaving the BlackEternal shadow.")]
+    public float exitForceMagnitude = 8f;
+
+    [Tooltip("How the exit force is applied to the Particle Player's Rigidbody2D.")]
+    public ForceMode2D exitForceMode = ForceMode2D.Impulse;
+
+    [Tooltip("If true, clears existing Particle Player velocity before applying the outward exit force.")]
+    public bool resetVelocityBeforeExitForce = true;
+
+    [Header("BlackEternal Floating Input (New Input System)")]
+    [Tooltip("Optional InputActionReference (Vector2) from your Input Actions asset for steering inside BlackEternal shadows (e.g. D-Pad / Move).")]
+    public InputActionReference shadowFloatMoveActionReference;
+
+    [Tooltip("Customizable inline InputAction (Vector2) for steering inside BlackEternal shadows (defaults to Gamepad D-Pad).")]
+    public InputAction shadowFloatMoveAction = new InputAction(
+        name: "ShadowFloatMove",
+        type: InputActionType.Value,
+        binding: "<Gamepad>/dpad",
+        expectedControlType: "Vector2"
+    );
+
     [Header("Gizmo Visualization Settings")]
     [Tooltip("Draw the Detection Radius and active influencer Gizmos in the Scene View.")]
     public bool showGizmos = true;
@@ -139,8 +170,12 @@ public class SpriteShadowCaster2D : MonoBehaviour
         public GameObject particleProxyObject;
         public Rigidbody2D proxyRigidbody;
         public Collider2D proxyCollider;
+        public PolygonCollider2D triggerCollider;
         public ParticleSystem[] particleSystems;
         public float enterTime;
+        public bool isExiting;
+        public float exitEnableAtTime;
+        public Vector2 exitForceDirection;
     }
 
     private readonly Dictionary<GameObject, FloatingShadowSession> m_proxyToSession = new Dictionary<GameObject, FloatingShadowSession>();
@@ -211,45 +246,95 @@ public class SpriteShadowCaster2D : MonoBehaviour
 
     private void FixedUpdate()
     {
-        // Safety check: if a floating particle proxy is no longer overlapping the BlackEternal trigger (e.g. shadow moved/shrank), exit & reactivate
-        if (m_proxyToSession.Count > 0 && shadowPolygonCollider != null)
+        if (m_proxyToSession.Count == 0)
+            return;
+
+        List<GameObject> beginExitProxies = null;
+        List<GameObject> finalizeProxies = null;
+
+        foreach (var kvp in m_proxyToSession)
         {
-            List<GameObject> exitedProxies = null;
-            foreach (var kvp in m_proxyToSession)
+            GameObject proxyObj = kvp.Key;
+            FloatingShadowSession session = kvp.Value;
+            if (proxyObj == null || session == null)
+                continue;
+
+            if (currentShadowType != ShadowType.BlackEternal)
             {
-                GameObject proxyObj = kvp.Key;
-                FloatingShadowSession session = kvp.Value;
-                if (proxyObj == null) continue;
-
-                if (Time.time - session.enterTime < 0.06f)
-                    continue;
-
-                bool stillOverlapping = shadowPolygonCollider.OverlapPoint(proxyObj.transform.position);
-                if (!stillOverlapping && session.proxyCollider != null)
-                {
-                    stillOverlapping = shadowPolygonCollider.IsTouching(session.proxyCollider);
-                }
-
-                if (!stillOverlapping || currentShadowType != ShadowType.BlackEternal)
-                {
-                    if (exitedProxies == null) exitedProxies = new List<GameObject>();
-                    exitedProxies.Add(proxyObj);
-                }
+                if (finalizeProxies == null) finalizeProxies = new List<GameObject>();
+                finalizeProxies.Add(proxyObj);
+                continue;
             }
 
-            if (exitedProxies != null)
+            if (session.isExiting)
             {
-                for (int i = 0; i < exitedProxies.Count; i++)
+                // Let the Particle Player travel under the outward exit force while waiting to re-enable Base Player
+                SyncExitingSession(session);
+
+                if (Time.time >= session.exitEnableAtTime)
                 {
-                    EndFloatingSessionForProxy(exitedProxies[i]);
+                    if (finalizeProxies == null) finalizeProxies = new List<GameObject>();
+                    finalizeProxies.Add(proxyObj);
                 }
+                continue;
             }
+
+            // Drive floating movement and particle playback deterministically every FixedUpdate
+            UpdateFloatingSessionMotion(session);
+
+            // Give newly spawned proxy a brief grace window for physics transforms to sync
+            if (Time.time - session.enterTime < 0.12f)
+                continue;
+
+            if (!IsSessionStillOverlappingShadow(session, session.triggerCollider != null ? session.triggerCollider : shadowPolygonCollider))
+            {
+                if (beginExitProxies == null) beginExitProxies = new List<GameObject>();
+                beginExitProxies.Add(proxyObj);
+            }
+        }
+
+        if (beginExitProxies != null)
+        {
+            for (int i = 0; i < beginExitProxies.Count; i++)
+            {
+                BeginExitFloatingSessionForProxy(beginExitProxies[i]);
+            }
+        }
+
+        if (finalizeProxies != null)
+        {
+            for (int i = 0; i < finalizeProxies.Count; i++)
+            {
+                EndFloatingSessionForProxy(finalizeProxies[i]);
+            }
+        }
+    }
+
+    private void OnEnable()
+    {
+        if (shadowFloatMoveActionReference != null && shadowFloatMoveActionReference.action != null)
+        {
+            shadowFloatMoveActionReference.action.Enable();
+        }
+
+        if (shadowFloatMoveAction != null)
+        {
+            if (shadowFloatMoveAction.bindings.Count == 0)
+            {
+                shadowFloatMoveAction.AddBinding("<Gamepad>/dpad");
+            }
+            shadowFloatMoveAction.Enable();
         }
     }
 
     private void OnDisable()
     {
         RestoreAllFloatingSessions();
+
+        if (shadowFloatMoveAction != null)
+        {
+            shadowFloatMoveAction.Disable();
+        }
     }
 
     void UpdateMaterial()
@@ -280,6 +365,7 @@ public class SpriteShadowCaster2D : MonoBehaviour
             return;
 
         shadowPolygonCollider.enabled = true;
+        shadowPolygonCollider.offset = Vector2.zero;
 
         // WhiteSolidIce -> Hard PolygonCollider2D (cannot be bypassed)
         // BlackEternal -> Trigger PolygonCollider2D (specific tags float inside)
@@ -430,7 +516,11 @@ public class SpriteShadowCaster2D : MonoBehaviour
 
     private bool IsValidInfluencerCandidate(Transform candidate)
     {
-        if (candidate == null || !candidate.gameObject.activeInHierarchy)
+        if (candidate == null)
+            return false;
+
+        bool isFloatingInThisShadow = IsObjectInFloatingSession(candidate.gameObject);
+        if (!candidate.gameObject.activeInHierarchy && !isFloatingInThisShadow)
             return false;
 
         // Prevent this shadow caster from influencing itself
@@ -450,6 +540,27 @@ public class SpriteShadowCaster2D : MonoBehaviour
         }
 
         return true;
+    }
+
+    private bool IsObjectInFloatingSession(GameObject obj)
+    {
+        if (obj == null || m_proxyToSession.Count == 0)
+            return false;
+
+        Transform objRoot = obj.transform.root;
+        foreach (var kvp in m_proxyToSession)
+        {
+            GameObject orig = kvp.Value.originalObject;
+            if (orig == null) continue;
+
+            if (orig == obj || orig.transform.IsChildOf(obj.transform) || obj.transform.IsChildOf(orig.transform) ||
+                (objRoot != null && orig.transform.root == objRoot))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private bool HasAllowedInteractingTag(Transform candidate)
@@ -664,22 +775,21 @@ public class SpriteShadowCaster2D : MonoBehaviour
                 return;
         }
 
-        StartFloatingSession(candidateObj, other);
+        StartFloatingSession(candidateObj, other, activeTriggerCollider != null ? activeTriggerCollider : shadowPolygonCollider);
     }
 
     internal void HandleShadowTriggerStay(Collider2D other)
     {
-        if (currentShadowType != ShadowType.BlackEternal || other == null)
+        // Floating motion and particle playback are driven deterministically in FixedUpdate()
+        // so PolygonCollider2D.SetPath() rebuilds cannot drop or double-apply movement.
+    }
+
+    private void UpdateFloatingSessionMotion(FloatingShadowSession session)
+    {
+        if (session == null)
             return;
 
-        GameObject keyObj = other.attachedRigidbody != null ? other.attachedRigidbody.gameObject : other.gameObject;
-        if (!m_proxyToSession.TryGetValue(keyObj, out FloatingShadowSession session) &&
-            !m_proxyToSession.TryGetValue(other.gameObject, out session))
-        {
-            return;
-        }
-
-        // Keep Particle Systems playing during Trigger Stay
+        // Keep Particle Systems playing while inside BlackEternal shadow
         if (session.particleSystems != null)
         {
             for (int i = 0; i < session.particleSystems.Length; i++)
@@ -692,7 +802,7 @@ public class SpriteShadowCaster2D : MonoBehaviour
             }
         }
 
-        // Float the Particle Prefab inside the BlackEternal shadow during Trigger Stay
+        // Float the Particle Prefab inside the BlackEternal shadow
         if (session.proxyRigidbody != null)
         {
             Vector2 moveInput = ReadFloatingSteerInput();
@@ -713,7 +823,7 @@ public class SpriteShadowCaster2D : MonoBehaviour
             session.proxyRigidbody.linearVelocity = Vector2.Lerp(
                 session.proxyRigidbody.linearVelocity,
                 targetVel,
-                1f - Mathf.Exp(- Mathf.Max(1f, shadowFloatDamping) * Time.fixedDeltaTime)
+                1f - Mathf.Exp(-Mathf.Max(1f, shadowFloatDamping) * Time.fixedDeltaTime)
             );
         }
         else if (session.particleProxyObject != null)
@@ -734,6 +844,28 @@ public class SpriteShadowCaster2D : MonoBehaviour
         }
     }
 
+    private bool IsSessionStillOverlappingShadow(FloatingShadowSession session, PolygonCollider2D triggerCol)
+    {
+        if (session == null || session.particleProxyObject == null || triggerCol == null || !triggerCol.enabled)
+            return false;
+
+        Vector2 proxyPos = session.particleProxyObject.transform.position;
+        if (triggerCol.OverlapPoint(proxyPos))
+            return true;
+
+        if (session.proxyCollider != null && session.proxyCollider.enabled)
+        {
+            if (triggerCol.IsTouching(session.proxyCollider))
+                return true;
+
+            ColliderDistance2D dist = Physics2D.Distance(triggerCol, session.proxyCollider);
+            if (dist.isValid && dist.isOverlapped)
+                return true;
+        }
+
+        return false;
+    }
+
     internal void HandleShadowTriggerExit(Collider2D other, PolygonCollider2D activeTriggerCollider)
     {
         if (other == null) return;
@@ -752,23 +884,22 @@ public class SpriteShadowCaster2D : MonoBehaviour
         }
 
         // Ignore the immediate OnTriggerExit2D fired by Unity when the original GameObject is disabled on Enter
-        if (matchedProxyKey == null || session == null)
+        if (matchedProxyKey == null || session == null || session.isExiting)
+            return;
+
+        // Ignore exits during the initial entry grace window
+        if (Time.time - session.enterTime < 0.12f)
             return;
 
         // Guard against false trigger exit caused by PolygonCollider2D.SetPath rebuilding while still inside the polygon
-        if (activeTriggerCollider != null &&
-            activeTriggerCollider.enabled &&
-            currentShadowType == ShadowType.BlackEternal &&
-            session.particleProxyObject != null &&
-            activeTriggerCollider.OverlapPoint(session.particleProxyObject.transform.position))
-        {
+        PolygonCollider2D triggerToCheck = activeTriggerCollider != null ? activeTriggerCollider : session.triggerCollider;
+        if (currentShadowType == ShadowType.BlackEternal && IsSessionStillOverlappingShadow(session, triggerToCheck))
             return;
-        }
 
-        EndFloatingSessionForProxy(matchedProxyKey);
+        BeginExitFloatingSessionForProxy(matchedProxyKey);
     }
 
-    private void StartFloatingSession(GameObject targetObj, Collider2D enteringCollider)
+    private void StartFloatingSession(GameObject targetObj, Collider2D enteringCollider, PolygonCollider2D triggerCol)
     {
         if (targetObj == null) return;
 
@@ -803,7 +934,7 @@ public class SpriteShadowCaster2D : MonoBehaviour
             proxyObj = CreateFallbackParticleProxy(enterPos, targetObj.name);
         }
 
-        // Ensure the Particle Prefab has a Rigidbody2D + Collider2D so Unity keeps firing OnTriggerStay2D and OnTriggerExit2D for it
+        // Ensure the Particle Prefab has a Rigidbody2D + Collider2D so Unity keeps firing trigger events and Physics2D.Distance works
         Rigidbody2D proxyRb = proxyObj.GetComponent<Rigidbody2D>();
         if (proxyRb == null)
         {
@@ -811,6 +942,7 @@ public class SpriteShadowCaster2D : MonoBehaviour
         }
         proxyRb.bodyType = RigidbodyType2D.Dynamic;
         proxyRb.gravityScale = 0f;
+        proxyRb.sleepMode = RigidbodySleepMode2D.NeverSleep;
         proxyRb.constraints = RigidbodyConstraints2D.FreezeRotation;
         proxyRb.linearVelocity = new Vector2(initialVel.x * 0.5f, Mathf.Max(initialVel.y * 0.35f, shadowFloatUpwardSpeed));
 
@@ -822,11 +954,18 @@ public class SpriteShadowCaster2D : MonoBehaviour
             if (enteringCollider != null)
             {
                 Vector3 ext = enteringCollider.bounds.extents;
-                approxRadius = Mathf.Clamp(Mathf.Min(ext.x, ext.y), 0.1f, 0.75f);
+                approxRadius = Mathf.Clamp(Mathf.Min(ext.x, ext.y), 0.15f, 0.75f);
             }
             circle.radius = approxRadius;
+            circle.offset = Vector2.zero;
             circle.isTrigger = true;
             proxyCol = circle;
+        }
+        else
+        {
+            proxyCol.enabled = true;
+            proxyCol.offset = Vector2.zero;
+            proxyCol.isTrigger = true;
         }
 
         ParticleSystem[] particleSystems = proxyObj.GetComponentsInChildren<ParticleSystem>(true);
@@ -847,6 +986,7 @@ public class SpriteShadowCaster2D : MonoBehaviour
             particleProxyObject = proxyObj,
             proxyRigidbody = proxyRb,
             proxyCollider = proxyCol,
+            triggerCollider = triggerCol,
             particleSystems = particleSystems,
             enterTime = Time.time
         };
@@ -854,6 +994,80 @@ public class SpriteShadowCaster2D : MonoBehaviour
         m_proxyToSession[proxyObj] = session;
         currentFloatingDisabledObject = targetObj;
         activeParticleProxyInstance = proxyObj;
+    }
+
+    private void BeginExitFloatingSessionForProxy(GameObject proxyKey)
+    {
+        if (proxyKey == null || !m_proxyToSession.TryGetValue(proxyKey, out FloatingShadowSession session))
+            return;
+
+        if (session.isExiting)
+            return;
+
+        session.isExiting = true;
+        session.exitEnableAtTime = Time.time + Mathf.Max(0f, exitEnableDelay);
+
+        // Apply outward force on the Particle Player FIRST (direction: from ShadowCaster -> Particle Player)
+        if (applyExitForce && !Mathf.Approximately(exitForceMagnitude, 0f) && session.particleProxyObject != null)
+        {
+            Vector3 proxyPos = session.particleProxyObject.transform.position;
+            Vector2 fromShadowToPlayer = (Vector2)proxyPos - (Vector2)transform.position;
+            Vector2 outwardDir = fromShadowToPlayer.sqrMagnitude > 0.0001f
+                ? fromShadowToPlayer.normalized
+                : (localExitForceDirection.sqrMagnitude > 0.0001f
+                    ? ((Vector2)transform.TransformDirection(localExitForceDirection)).normalized
+                    : Vector2.up);
+
+            session.exitForceDirection = outwardDir;
+
+            if (session.proxyRigidbody != null)
+            {
+                session.proxyRigidbody.WakeUp();
+                if (resetVelocityBeforeExitForce)
+                {
+                    session.proxyRigidbody.linearVelocity = Vector2.zero;
+                }
+                session.proxyRigidbody.AddForce(outwardDir * exitForceMagnitude, exitForceMode);
+            }
+        }
+
+        // If no wait delay is set, immediately re-enable the Base Player
+        if (exitEnableDelay <= 0f)
+        {
+            EndFloatingSessionForProxy(proxyKey);
+        }
+    }
+
+    private void SyncExitingSession(FloatingShadowSession session)
+    {
+        if (session == null)
+            return;
+
+        // Keep Particle Systems playing during the exit launch delay
+        if (session.particleSystems != null)
+        {
+            for (int i = 0; i < session.particleSystems.Length; i++)
+            {
+                ParticleSystem ps = session.particleSystems[i];
+                if (ps != null && !ps.isPlaying)
+                {
+                    ps.Play(true);
+                }
+            }
+        }
+
+        // If ForceMode2D.Force is selected, continue applying force during the launch window
+        if (applyExitForce && exitForceMode == ForceMode2D.Force && !Mathf.Approximately(exitForceMagnitude, 0f) &&
+            session.proxyRigidbody != null && session.exitForceDirection.sqrMagnitude > 0.0001f)
+        {
+            session.proxyRigidbody.AddForce(session.exitForceDirection * exitForceMagnitude, ForceMode2D.Force);
+        }
+
+        // Keep Base Player position synced to the flying Particle Player until it is re-enabled
+        if (session.originalObject != null && session.particleProxyObject != null)
+        {
+            session.originalObject.transform.position = session.particleProxyObject.transform.position;
+        }
     }
 
     private void EndFloatingSessionForProxy(GameObject proxyKey)
@@ -894,7 +1108,7 @@ public class SpriteShadowCaster2D : MonoBehaviour
             }
         }
 
-        // 2. Reactivate the previous GameObject that entered the shadow
+        // 2. Now re-enable the Base Player at the Particle Player's final position & velocity
         if (session.originalObject != null)
         {
             session.originalObject.transform.position = exitPosition;
@@ -904,9 +1118,13 @@ public class SpriteShadowCaster2D : MonoBehaviour
             Rigidbody2D origRb = session.originalObject.GetComponent<Rigidbody2D>();
             if (origRb != null)
             {
+                origRb.position = exitPosition;
                 origRb.gravityScale = session.originalGravityScale;
                 origRb.linearVelocity = exitVelocity;
+                origRb.WakeUp();
             }
+
+            Physics2D.SyncTransforms();
         }
 
         if (currentFloatingDisabledObject == session.originalObject)
@@ -956,16 +1174,41 @@ public class SpriteShadowCaster2D : MonoBehaviour
         return null;
     }
 
-    private static Vector2 ReadFloatingSteerInput()
+    private Vector2 ReadFloatingSteerInput()
     {
         Vector2 input = Vector2.zero;
 
+        // 1. Custom New Input System InputActionReference (if assigned in Inspector)
+        if (shadowFloatMoveActionReference != null && shadowFloatMoveActionReference.action != null)
+        {
+            if (!shadowFloatMoveActionReference.action.enabled)
+                shadowFloatMoveActionReference.action.Enable();
+
+            Vector2 refVal = shadowFloatMoveActionReference.action.ReadValue<Vector2>();
+            if (refVal.sqrMagnitude > input.sqrMagnitude)
+                input = refVal;
+        }
+
+        // 2. Custom inline New Input System InputAction (defaults to <Gamepad>/dpad)
+        if (shadowFloatMoveAction != null)
+        {
+            if (!shadowFloatMoveAction.enabled)
+                shadowFloatMoveAction.Enable();
+
+            Vector2 actionVal = shadowFloatMoveAction.ReadValue<Vector2>();
+            if (actionVal.sqrMagnitude > input.sqrMagnitude)
+                input = actionVal;
+        }
+
+        // 3. Direct Keyboard / Gamepad D-Pad & Left Stick fallback
         if (Keyboard.current != null)
         {
-            if (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed) input.x -= 1f;
-            if (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed) input.x += 1f;
-            if (Keyboard.current.wKey.isPressed || Keyboard.current.upArrowKey.isPressed || Keyboard.current.spaceKey.isPressed) input.y += 1f;
-            if (Keyboard.current.sKey.isPressed || Keyboard.current.downArrowKey.isPressed) input.y -= 1f;
+            Vector2 kbInput = Vector2.zero;
+            if (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed) kbInput.x -= 1f;
+            if (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed) kbInput.x += 1f;
+            if (Keyboard.current.wKey.isPressed || Keyboard.current.upArrowKey.isPressed || Keyboard.current.spaceKey.isPressed) kbInput.y += 1f;
+            if (Keyboard.current.sKey.isPressed || Keyboard.current.downArrowKey.isPressed) kbInput.y -= 1f;
+            if (kbInput.sqrMagnitude > input.sqrMagnitude) input = kbInput;
         }
 
         if (Gamepad.current != null)
@@ -1551,6 +1794,31 @@ public class SpriteShadowCaster2D : MonoBehaviour
             Gizmos.DrawLine(center, influencerPos);
             DrawWireCircle2D(influencerPos, 0.2f, 24);
             Gizmos.DrawWireSphere(influencerPos, 0.12f);
+        }
+
+        // 3. Draw Outward Exit Force Direction Arrow (from ShadowCaster Object -> Player) for BlackEternal shadows
+        if (currentShadowType == ShadowType.BlackEternal && applyExitForce && !Mathf.Approximately(exitForceMagnitude, 0f))
+        {
+            Vector3 playerPos = activeParticleProxyInstance != null
+                ? activeParticleProxyInstance.transform.position
+                : (hasActiveInfluencer ? activeInfluencer.position : (Vector3)center + transform.TransformDirection(localExitForceDirection.sqrMagnitude > 0.0001f ? localExitForceDirection : Vector2.up).normalized * 1.25f);
+
+            Vector2 fromShadowToPlayer = (Vector2)playerPos - (Vector2)transform.position;
+            if (fromShadowToPlayer.sqrMagnitude > 0.0001f)
+            {
+                Vector2 outwardDir = fromShadowToPlayer.normalized;
+                Vector2 arrowDir = exitForceMagnitude >= 0f ? outwardDir : -outwardDir;
+                float arrowLength = Mathf.Clamp(Mathf.Abs(exitForceMagnitude) * 0.18f, 0.6f, 2.5f);
+                Vector3 tip = playerPos + (Vector3)(arrowDir * arrowLength);
+
+                Gizmos.color = new Color(1f, 0.45f, 0.2f, 0.95f);
+                Gizmos.DrawLine(playerPos, tip);
+
+                Vector2 perp = new Vector2(-arrowDir.y, arrowDir.x);
+                const float headLen = 0.25f;
+                Gizmos.DrawLine(tip, tip - (Vector3)(arrowDir * headLen) + (Vector3)(perp * headLen * 0.55f));
+                Gizmos.DrawLine(tip, tip - (Vector3)(arrowDir * headLen) - (Vector3)(perp * headLen * 0.55f));
+            }
         }
     }
 

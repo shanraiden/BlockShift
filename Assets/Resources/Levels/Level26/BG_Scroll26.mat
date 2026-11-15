@@ -31,7 +31,7 @@ Material:
     m_Floats:
     - _AutoScrollSpeed: 0
     - _AutoScrollSpeedY: 0
-    - _BaseParallax: -0.015
+    - _BaseParallax: -0.008
     - _BlurSamples: 5
     - _BumpAmount: 0
     - _BumpFrequency: 18.2
@@ -43,11 +43,11 @@ Material:
     - _FogSpeed: 0.8
     - _FogWindAngle: 64
     - _InvertDirection: 0
-    - _LayerCount: 1
+    - _LayerCount: 6.4
     - _MotionBlurStrength: 0.0213
     - _ReverseSpeedOrder: 0
-    - _SpeedMultiplier: 0.23
-    - _SplitZoneCenter: 0.529
+    - _SpeedMultiplier: 1.11
+    - _SplitZoneCenter: 0.549
     - _SplitZoneWidth: 0.955
     - _VerticalSplit: 0
     - _ZoneFeather: 0.123

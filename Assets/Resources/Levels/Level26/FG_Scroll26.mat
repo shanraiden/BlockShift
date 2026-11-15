@@ -31,11 +31,11 @@ Material:
     m_Floats:
     - _AutoScrollSpeed: 0
     - _AutoScrollSpeedY: 0
-    - _BaseParallax: 0.171
+    - _BaseParallax: 0.103
     - _BlurSamples: 3
-    - _BumpAmount: 0.032
+    - _BumpAmount: 0.013
     - _BumpFrequency: 27.7
-    - _BumpSpeed: 0
+    - _BumpSpeed: 1.03
     - _CamPosX: 0
     - _EdgeFeather: 0.17
     - _FogDensity: 0
@@ -43,12 +43,12 @@ Material:
     - _FogSpeed: 0.8
     - _FogWindAngle: 64
     - _InvertDirection: 0
-    - _LayerCount: 6.4
+    - _LayerCount: 4.8
     - _MotionBlurStrength: 0
     - _ReverseSpeedOrder: 0
-    - _SpeedMultiplier: 0.54
-    - _SplitZoneCenter: 1
-    - _SplitZoneWidth: 0.862
+    - _SpeedMultiplier: 0.39
+    - _SplitZoneCenter: 0.623
+    - _SplitZoneWidth: 0.715
     - _VerticalSplit: 0
     - _ZoneFeather: 0.037
     m_Colors:

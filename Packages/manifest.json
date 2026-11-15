@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "com.unity.2d.animation": "14.0.3",
+    "com.unity.2d.animation": "14.0.4",
     "com.unity.2d.aseprite": "4.0.1",
     "com.unity.2d.psdimporter": "13.0.2",
     "com.unity.2d.sprite": "1.0.0",
@@ -16,11 +16,12 @@
     "com.unity.microsoft.gdk": "1.7.0",
     "com.unity.microsoft.gdk.tools": "1.7.0",
     "com.unity.multiplayer.center": "1.0.1",
-    "com.unity.purchasing": "5.4.2",
+    "com.unity.purchasing": "5.5.0",
     "com.unity.render-pipelines.universal": "17.4.0",
     "com.unity.test-framework": "1.6.0",
     "com.unity.timeline": "1.8.12",
     "com.unity.ugui": "2.0.0",
+    "com.unity.visualeffectgraph": "17.4.0",
     "com.unity.visualscripting": "1.9.11",
     "com.unity.modules.accessibility": "1.0.0",
     "com.unity.modules.adaptiveperformance": "1.0.0",

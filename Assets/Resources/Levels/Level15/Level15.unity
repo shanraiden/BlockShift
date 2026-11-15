@@ -2085,6 +2085,18 @@ PrefabInstance:
       value: mainPlayer
       objectReference: {fileID: 0}
     - target: {fileID: 2046750893200123277, guid: ead723ee2fd9eb54790d2e0a0756eb93, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.74
+      objectReference: {fileID: 0}
+    - target: {fileID: 2046750893200123277, guid: ead723ee2fd9eb54790d2e0a0756eb93, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.74
+      objectReference: {fileID: 0}
+    - target: {fileID: 2046750893200123277, guid: ead723ee2fd9eb54790d2e0a0756eb93, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.74
+      objectReference: {fileID: 0}
+    - target: {fileID: 2046750893200123277, guid: ead723ee2fd9eb54790d2e0a0756eb93, type: 3}
       propertyPath: m_LocalPosition.x
       value: -18.515486
       objectReference: {fileID: 0}
@@ -2124,6 +2136,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2046750893200123277, guid: ead723ee2fd9eb54790d2e0a0756eb93, type: 3}
+      propertyPath: m_ConstrainProportionsScale
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -2151,7 +2167,7 @@ PrefabInstance:
       objectReference: {fileID: 1144718905}
     - target: {fileID: 230423504004734248, guid: 2369c892c7da39142bd829ea6e6bdad7, type: 3}
       propertyPath: landscapeSceneWidth
-      value: 60
+      value: 38
       objectReference: {fileID: 0}
     - target: {fileID: 1022590367934849174, guid: 2369c892c7da39142bd829ea6e6bdad7, type: 3}
       propertyPath: m_AnchoredPosition.y

@@ -36,11 +36,41 @@ public class PlayerInput : MonoBehaviour
     {
         if (isProcessingTurn) return;
 
+        if (mainCamera == null)
+        {
+            mainCamera = Camera.main;
+            if (mainCamera == null) return;
+        }
+
         Pointer currentPointer = Pointer.current;
         if (currentPointer == null) return;
 
+        // Handle release immediately even if pointer position is outside the Game view
+        if (currentPointer.press.wasReleasedThisFrame)
+        {
+            isDragging = false;
+            selectedBlock = null;
+            return;
+        }
+
+        if (!currentPointer.press.wasPressedThisFrame && !(currentPointer.press.isPressed && isDragging && selectedBlock != null))
+            return;
+
         Vector2 screenPos = currentPointer.position.ReadValue();
-        Vector3 worldPos = mainCamera.ScreenToWorldPoint(new Vector3(screenPos.x, screenPos.y, -mainCamera.transform.position.z));
+        if (float.IsNaN(screenPos.x) || float.IsNaN(screenPos.y) || float.IsInfinity(screenPos.x) || float.IsInfinity(screenPos.y))
+            return;
+
+        Rect pixelRect = mainCamera.pixelRect;
+        if (pixelRect.width <= 0f || pixelRect.height <= 0f)
+            return;
+
+        Vector3 screenPoint = new Vector3(
+            Mathf.Clamp(screenPos.x, pixelRect.xMin, pixelRect.xMax),
+            Mathf.Clamp(screenPos.y, pixelRect.yMin, pixelRect.yMax),
+            -mainCamera.transform.position.z
+        );
+
+        Vector3 worldPos = mainCamera.ScreenToWorldPoint(screenPoint);
 
         // 1. PRESS STARTED
         if (currentPointer.press.wasPressedThisFrame)

@@ -7745,7 +7745,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 230423504004734248, guid: 2369c892c7da39142bd829ea6e6bdad7, type: 3}
       propertyPath: landscapeSceneWidth
-      value: 64
+      value: 44.9
       objectReference: {fileID: 0}
     - target: {fileID: 1022590367934849174, guid: 2369c892c7da39142bd829ea6e6bdad7, type: 3}
       propertyPath: m_AnchoredPosition.y
@@ -7933,7 +7933,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6178865398310875506, guid: 2369c892c7da39142bd829ea6e6bdad7, type: 3}
       propertyPath: layers.Array.data[2].parallaxOnlyWhenVisible
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6178865398310875506, guid: 2369c892c7da39142bd829ea6e6bdad7, type: 3}
       propertyPath: layers.Array.data[3].parallaxOnlyWhenVisible

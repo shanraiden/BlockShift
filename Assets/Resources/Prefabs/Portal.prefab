@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 6217627463017167206}
   - component: {fileID: 4218918199849273746}
   - component: {fileID: 7151458869306507835}
-  m_Layer: 0
+  m_Layer: 2
   m_Name: Portal
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -155,19 +155,19 @@ MonoBehaviour:
   linkedPortalOverride: {fileID: 0}
   portalNetworkID: 
   portalAnchorPoint: {fileID: 0}
-  exitPositionOffset: {x: 0, y: 0}
+  exitPositionOffset: {x: 2.88, y: 0}
   teleportableLayers:
     serializedVersion: 2
     m_Bits: 2184
   teleportableTags: []
-  teleportParticlePrefab: {fileID: 0}
-  particleTransportMode: 0
-  teleportDuration: 0.65
-  travelArcHeight: 0.5
-  particleDestroyDelay: 0
+  teleportVfxGraphObject: {fileID: 0}
+  teleportVfxAsset: {fileID: 8926484042661614526, guid: ae737bad3778e6d4aa5cd7ebf93d5f4c, type: 3}
+  vfxStartPoint: {fileID: 0}
+  vfxStartPositionOffset: {x: -0.29, y: 1.51}
+  vfxTransportMode: 0
+  teleportDuration: 1.03
+  travelArcHeight: 1.13
   reentryCooldown: 0.6
-  preserveVelocityOnExit: 1
-  exitVelocityImpulse: {x: 0, y: 0}
   onTeleportStarted:
     m_PersistentCalls:
       m_Calls: []
@@ -181,5 +181,7 @@ MonoBehaviour:
   activeLinkGizmoColor: {r: 0.2, g: 1, b: 0.55, a: 0.95}
   noLinkGizmoColor: {r: 1, g: 0.35, b: 0.3, a: 0.75}
   exitPointGizmoColor: {r: 1, g: 0.75, b: 0.15, a: 0.95}
+  vfxStartPointGizmoColor: {r: 0.15, g: 0.85, b: 1, a: 0.95}
   currentClosestPortal: {fileID: 0}
   currentlyTransportingObject: {fileID: 0}
+  activeVfxObject: {fileID: 0}
