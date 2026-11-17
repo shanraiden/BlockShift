@@ -10,6 +10,58 @@ public class SpriteShadowCaster2D : MonoBehaviour
     [Header("Projection Settings")]
     public Vector2 baseLightDirection = new Vector2(0f, -1f); // Neutral vertical bias
 
+    [Tooltip("If true, keeps the shadow strictly orthographic (snapped to the 4 cardinal axes: Left, Right, Up, Down without diagonal skewing).")]
+    public bool keepShadowOrthographic = true;
+
+    [Tooltip("Deadband margin around 45-degree diagonals before switching between horizontal and vertical orthographic axes.")]
+    [Range(0f, 0.5f)]
+    public float orthographicAxisHysteresis = 0.1f;
+
+    [Header("2D Shadow Morph Mechanics")]
+    [Tooltip("Width multiplier at the shadow tip (< 1 tapers into a sharp blade; > 1 flares into a wide fan/bridge).")]
+    [Range(0.1f, 2.5f)]
+    public float tipWidthMultiplier = 1.0f;
+
+    [Tooltip("Extra tip flare (> 0) or sharpening (< 0) applied smoothly as a valid player approaches within Max Interaction Distance.")]
+    [Range(-0.8f, 1.5f)]
+    public float proximityTipFlare = 0.35f;
+
+    [Tooltip("Non-linear projection curve along the shadow axis (< 1 thickens the base; > 1 stretches the tip).")]
+    [Range(0.3f, 3.0f)]
+    public float shadowApexCurve = 1.0f;
+
+    [Tooltip("If true, applies a subtle organic breathing pulse along BlackEternal shadows.")]
+    public bool enableLivingPulse = true;
+
+    [Tooltip("If true, also applies the living pulse to WhiteSolidIce shadows (leave false to keep solid platforms static).")]
+    public bool pulseOnSolidIce = false;
+
+    [Tooltip("Amplitude of the organic shadow breathing pulse.")]
+    [Range(0f, 0.35f)]
+    public float pulseAmplitude = 0.08f;
+
+    [Tooltip("Frequency (cycles/sec) of the organic shadow breathing pulse.")]
+    [Min(0.1f)]
+    public float pulseFrequency = 2.5f;
+
+    [Tooltip("If true, triggers a damped squash-and-flare ripple when entering BlackEternal or colliding with WhiteSolidIce.")]
+    public bool enableContactMorph = true;
+
+    [Tooltip("Intensity of the contact squash/flare morph ripple.")]
+    [Range(0f, 1f)]
+    public float contactMorphStrength = 0.3f;
+
+    [Tooltip("Duration (in seconds) of the contact morph ripple.")]
+    [Min(0.05f)]
+    public float contactMorphDuration = 0.35f;
+
+    [Tooltip("If true, plays a collapse-and-expand morph when switching between BlackEternal and WhiteSolidIce.")]
+    public bool enablePhaseShiftMorph = true;
+
+    [Tooltip("Duration (in seconds) of the phase-shift morph when changing shadow type.")]
+    [Min(0.05f)]
+    public float phaseShiftMorphDuration = 0.25f;
+
     [Header("Transparency / Alpha Settings")]
     [Tooltip("Pixels with alpha at or below this threshold are treated as transparent and will not cast shadows.")]
     [Range(0.01f, 1f)]
@@ -29,6 +81,9 @@ public class SpriteShadowCaster2D : MonoBehaviour
 
     [Tooltip("Only GameObjects with one of these specific tags can interact with this shadow caster.")]
     public List<string> interactingTags = new List<string> { "Player" };
+
+    [Tooltip("If true, when the Player has picked up an object with an Interactive Tag via WolfObjectPickup2D, prioritize that held object instead of the Player.")]
+    public bool prioritizeHeldInteractiveObject = true;
 
     [Tooltip("If true, only tagged GameObjects that have a SpriteRenderer (on themselves, parent, or children) can influence the shadow.")]
     public bool requireSpriteRendererOnInfluencer = true;
@@ -159,7 +214,14 @@ public class SpriteShadowCaster2D : MonoBehaviour
     private Vector2 lastColliderShadowDir;
     private float lastColliderShadowLength = -1f;
     private float lastColliderWidthFactor = -1f;
+    private float lastColliderMorphSignature;
     private ShadowType lastConfiguredShadowType;
+    private float m_proximityFactor;
+    private float m_contactMorphTimer;
+    private float m_contactMorphSign = 1f;
+    private float m_phaseMorphTimer;
+    private float m_phaseLengthMultiplier = 1f;
+    private float m_phaseWidthMultiplier = 1f;
 
     // BlackSolid Floating State Tracking
     private class FloatingShadowSession
@@ -227,6 +289,10 @@ public class SpriteShadowCaster2D : MonoBehaviour
 
         float objectScale = Mathf.Max(Mathf.Abs(transform.lossyScale.x), Mathf.Abs(transform.lossyScale.y));
         currentShadowDir = baseLightDirection.sqrMagnitude > 0.0001f ? baseLightDirection.normalized : Vector2.down;
+        if (keepShadowOrthographic)
+        {
+            currentShadowDir = SnapToOrthographicDirection(currentShadowDir, Vector2.down);
+        }
         currentLength = minShadowLength * objectScale;
 
         EnsureOpaqueGeometryCached();
@@ -236,6 +302,10 @@ public class SpriteShadowCaster2D : MonoBehaviour
     {
         if (lastConfiguredShadowType != currentShadowType)
         {
+            if (enablePhaseShiftMorph && Application.isPlaying)
+            {
+                m_phaseMorphTimer = Mathf.Max(0.05f, phaseShiftMorphDuration);
+            }
             UpdateMaterial();
             SyncShadowColliderMode();
         }
@@ -380,13 +450,52 @@ public class SpriteShadowCaster2D : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Switches the shadow polarity (BlackEternal vs WhiteSolidIce) and triggers the phase-shift morph.
+    /// </summary>
+    public void SetShadowType(ShadowType newType)
+    {
+        if (currentShadowType == newType)
+            return;
+
+        currentShadowType = newType;
+        if (enablePhaseShiftMorph)
+        {
+            m_phaseMorphTimer = Mathf.Max(0.05f, phaseShiftMorphDuration);
+        }
+        UpdateMaterial();
+        SyncShadowColliderMode();
+    }
+
+    /// <summary>
+    /// Toggles between BlackEternal and WhiteSolidIce shadow types with a phase-shift morph.
+    /// </summary>
+    public void ToggleShadowType()
+    {
+        SetShadowType(currentShadowType == ShadowType.BlackEternal ? ShadowType.WhiteSolidIce : ShadowType.BlackEternal);
+    }
+
+    /// <summary>
+    /// Triggers a damped squash-and-flare contact morph ripple on the shadow.
+    /// </summary>
+    public void TriggerContactMorph(bool isSoftEnter)
+    {
+        if (!enableContactMorph || contactMorphStrength <= 0.001f)
+            return;
+
+        m_contactMorphSign = isSoftEnter ? 1f : -1f;
+        m_contactMorphTimer = Mathf.Max(0.05f, contactMorphDuration);
+    }
+
     void UpdateSmoothedShadowValues()
     {
         if (isShadowFrozen) return;
 
+        float dt = Time.deltaTime;
         float objectScale = Mathf.Max(Mathf.Abs(transform.lossyScale.x), Mathf.Abs(transform.lossyScale.y));
         Vector2 targetDirection = baseLightDirection.sqrMagnitude > 0.0001f ? baseLightDirection.normalized : currentShadowDir;
         float targetLength = minShadowLength * objectScale;
+        float targetProximity = 0f;
 
         if (affectedByPlayerPosition)
         {
@@ -404,8 +513,8 @@ public class SpriteShadowCaster2D : MonoBehaviour
                 if (combinedDir.sqrMagnitude > 0.0001f)
                     targetDirection = combinedDir.normalized;
 
-                float distanceFactor = Mathf.Clamp01(1f - (distanceToInfluencer / maxInteractionDistance));
-                targetLength = Mathf.Lerp(minShadowLength * objectScale, maxShadowLength * objectScale, distanceFactor);
+                targetProximity = Mathf.Clamp01(1f - (distanceToInfluencer / maxInteractionDistance));
+                targetLength = Mathf.Lerp(minShadowLength * objectScale, maxShadowLength * objectScale, targetProximity);
             }
             else
             {
@@ -419,8 +528,68 @@ public class SpriteShadowCaster2D : MonoBehaviour
             isInPlayerRange = false;
         }
 
-        currentShadowDir = Vector2.Lerp(currentShadowDir, targetDirection, Time.deltaTime * transitionSpeed);
-        currentLength = Mathf.Lerp(currentLength, targetLength, Time.deltaTime * transitionSpeed);
+        if (keepShadowOrthographic)
+        {
+            targetDirection = SnapToOrthographicDirection(targetDirection, currentShadowDir);
+            currentShadowDir = targetDirection;
+        }
+        else
+        {
+            currentShadowDir = Vector2.Lerp(currentShadowDir, targetDirection, dt * transitionSpeed);
+        }
+
+        currentLength = Mathf.Lerp(currentLength, targetLength, dt * transitionSpeed);
+        m_proximityFactor = Mathf.Lerp(m_proximityFactor, targetProximity, dt * transitionSpeed);
+
+        if (m_contactMorphTimer > 0f)
+        {
+            m_contactMorphTimer = Mathf.Max(0f, m_contactMorphTimer - dt);
+        }
+
+        if (m_phaseMorphTimer > 0f && enablePhaseShiftMorph)
+        {
+            m_phaseMorphTimer = Mathf.Max(0f, m_phaseMorphTimer - dt);
+            float phaseNorm = 1f - (m_phaseMorphTimer / Mathf.Max(0.05f, phaseShiftMorphDuration));
+            float dip = Mathf.Sin(phaseNorm * Mathf.PI);
+            m_phaseLengthMultiplier = Mathf.Lerp(1f, 0.45f, dip);
+            m_phaseWidthMultiplier = Mathf.Lerp(1f, 1.35f, dip);
+        }
+        else
+        {
+            m_phaseLengthMultiplier = 1f;
+            m_phaseWidthMultiplier = 1f;
+        }
+    }
+
+    private Vector2 SnapToOrthographicDirection(Vector2 rawDir, Vector2 previousAxis)
+    {
+        if (rawDir.sqrMagnitude <= 0.0001f)
+        {
+            rawDir = previousAxis.sqrMagnitude > 0.0001f ? previousAxis : Vector2.down;
+        }
+
+        float absX = Mathf.Abs(rawDir.x);
+        float absY = Mathf.Abs(rawDir.y);
+        float margin = 1f + Mathf.Max(0f, orthographicAxisHysteresis);
+
+        bool chooseHorizontal;
+        if (Mathf.Abs(previousAxis.x) > 0.5f)
+        {
+            chooseHorizontal = !(absY > absX * margin);
+        }
+        else if (Mathf.Abs(previousAxis.y) > 0.5f)
+        {
+            chooseHorizontal = absX > absY * margin;
+        }
+        else
+        {
+            chooseHorizontal = absX > absY;
+        }
+
+        if (chooseHorizontal)
+            return rawDir.x >= 0f ? Vector2.right : Vector2.left;
+
+        return rawDir.y >= 0f ? Vector2.up : Vector2.down;
     }
 
     /// <summary>
@@ -432,6 +601,17 @@ public class SpriteShadowCaster2D : MonoBehaviour
         Vector2 center = transform.position;
         float radius = Mathf.Max(0f, maxInteractionDistance);
         float radiusSqr = radius * radius;
+
+        // 0. If Player has picked up an object with an interacting tag in WolfObjectPickup2D, prioritize it over the Player
+        if (prioritizeHeldInteractiveObject)
+        {
+            Transform heldInfluencer = TryFindPrioritizedHeldInfluencer(center, radiusSqr, out float heldDist);
+            if (heldInfluencer != null)
+            {
+                distanceOut = heldDist;
+                return heldInfluencer;
+            }
+        }
 
         // 1. If lockActiveInfluencerUntilExit is true and our current influencer is still valid and inside the radius, keep it exclusively
         if (lockActiveInfluencerUntilExit && IsValidInfluencerCandidate(currentInfluencingTransform))
@@ -496,6 +676,79 @@ public class SpriteShadowCaster2D : MonoBehaviour
         return bestCandidate;
     }
 
+    private Transform TryFindPrioritizedHeldInfluencer(Vector2 center, float radiusSqr, out float distanceOut)
+    {
+        distanceOut = float.MaxValue;
+        Transform bestHeld = null;
+        float closestSqr = radiusSqr;
+
+        WolfObjectPickup2D[] pickups = FindObjectsByType<WolfObjectPickup2D>(FindObjectsSortMode.None);
+        for (int i = 0; i < pickups.Length; i++)
+        {
+            WolfObjectPickup2D pickup = pickups[i];
+            if (pickup == null || !pickup.isActiveAndEnabled)
+                continue;
+
+            GameObject heldObj = pickup.CurrentHeldObject;
+            if (heldObj == null || !heldObj.activeInHierarchy)
+                continue;
+
+            // Only prioritize the held object if the held object itself (or its children) carries an interacting tag
+            if (!HasDirectOrChildInteractingTag(heldObj.transform))
+                continue;
+
+            Transform canonicalHeld = GetCanonicalSpriteObjectTransform(heldObj.transform);
+            if (canonicalHeld == null || canonicalHeld == transform || canonicalHeld.IsChildOf(transform) || transform.IsChildOf(canonicalHeld))
+                continue;
+
+            if (requireSpriteRendererOnInfluencer &&
+                canonicalHeld.GetComponent<SpriteRenderer>() == null &&
+                canonicalHeld.GetComponentInChildren<SpriteRenderer>() == null)
+            {
+                continue;
+            }
+
+            float sqrDist = ((Vector2)canonicalHeld.position - center).sqrMagnitude;
+            if (sqrDist <= closestSqr)
+            {
+                closestSqr = sqrDist;
+                bestHeld = canonicalHeld;
+            }
+        }
+
+        if (bestHeld != null)
+        {
+            distanceOut = Mathf.Sqrt(closestSqr);
+        }
+
+        return bestHeld;
+    }
+
+    private bool HasDirectOrChildInteractingTag(Transform target)
+    {
+        if (target == null || interactingTags == null || interactingTags.Count == 0)
+            return false;
+
+        Transform[] children = target.GetComponentsInChildren<Transform>(true);
+        for (int t = 0; t < interactingTags.Count; t++)
+        {
+            string allowedTag = interactingTags[t];
+            if (string.IsNullOrWhiteSpace(allowedTag))
+                continue;
+
+            if (target.gameObject.tag == allowedTag)
+                return true;
+
+            for (int c = 0; c < children.Length; c++)
+            {
+                if (children[c] != null && children[c].gameObject.tag == allowedTag)
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
     private Transform GetCanonicalSpriteObjectTransform(Transform candidate)
     {
         if (candidate == null) return null;
@@ -503,13 +756,13 @@ public class SpriteShadowCaster2D : MonoBehaviour
         if (candidate.TryGetComponent<SpriteRenderer>(out _))
             return candidate;
 
-        SpriteRenderer parentSr = candidate.GetComponentInParent<SpriteRenderer>();
-        if (parentSr != null)
-            return parentSr.transform;
-
         SpriteRenderer childSr = candidate.GetComponentInChildren<SpriteRenderer>();
         if (childSr != null)
             return childSr.transform;
+
+        SpriteRenderer parentSr = candidate.GetComponentInParent<SpriteRenderer>();
+        if (parentSr != null)
+            return parentSr.transform;
 
         return candidate;
     }
@@ -631,11 +884,13 @@ public class SpriteShadowCaster2D : MonoBehaviour
 
             SyncShadowColliderMode();
 
+            float morphSignature = ComputeActiveMorphSignature();
             bool colliderShapeChanged = topologyChanged ||
                                         shadowPolygonCollider.pathCount != baseOpaqueContours.Count ||
                                         Vector2.Distance(lastColliderShadowDir, currentShadowDir) > 0.001f ||
                                         Mathf.Abs(lastColliderShadowLength - currentLength) > 0.001f ||
-                                        Mathf.Abs(lastColliderWidthFactor - shadowWidthFactor) > 0.001f;
+                                        Mathf.Abs(lastColliderWidthFactor - shadowWidthFactor) > 0.001f ||
+                                        Mathf.Abs(lastColliderMorphSignature - morphSignature) > 0.002f;
 
             if (colliderShapeChanged)
             {
@@ -643,6 +898,7 @@ public class SpriteShadowCaster2D : MonoBehaviour
                 lastColliderShadowDir = currentShadowDir;
                 lastColliderShadowLength = currentLength;
                 lastColliderWidthFactor = shadowWidthFactor;
+                lastColliderMorphSignature = morphSignature;
             }
         }
     }
@@ -735,6 +991,17 @@ public class SpriteShadowCaster2D : MonoBehaviour
     // ========================================================================================
     // BlackEternal Trigger Floating & Particle System Prefab Swap Logic
     // ========================================================================================
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (currentShadowType == ShadowType.WhiteSolidIce && collision != null && collision.collider != null)
+        {
+            if (ResolveFloatingTargetObject(collision.collider) != null)
+            {
+                TriggerContactMorph(false);
+            }
+        }
+    }
 
     private void OnTriggerEnter2D(Collider2D other)
     {
@@ -994,6 +1261,8 @@ public class SpriteShadowCaster2D : MonoBehaviour
         m_proxyToSession[proxyObj] = session;
         currentFloatingDisabledObject = targetObj;
         activeParticleProxyInstance = proxyObj;
+
+        TriggerContactMorph(true);
     }
 
     private void BeginExitFloatingSessionForProxy(GameObject proxyKey)
@@ -1246,23 +1515,77 @@ public class SpriteShadowCaster2D : MonoBehaviour
     }
 
     /// <summary>
-    /// Projects sprite-local non-transparent points by shadowWidthFactor and currentShadowDir * currentLength
-    /// into the target transform's local space.
+    /// Projects sprite-local non-transparent points by shadowWidthFactor, orthographic axis,
+    /// and active 2D shadow morph mechanics into world or target-local space.
     /// </summary>
+    private Vector2 GetEffectiveShadowAxis()
+    {
+        Vector2 axis = currentShadowDir.sqrMagnitude > 0.0001f ? currentShadowDir.normalized : Vector2.down;
+        return keepShadowOrthographic ? SnapToOrthographicDirection(axis, axis) : axis;
+    }
+
+    private float EvaluateContactWave()
+    {
+        if (!enableContactMorph || m_contactMorphTimer <= 0f || contactMorphStrength <= 0.001f)
+            return 0f;
+
+        float norm = 1f - (m_contactMorphTimer / Mathf.Max(0.05f, contactMorphDuration));
+        float decay = 1f - norm;
+        return Mathf.Sin(norm * Mathf.PI * 2f) * decay * contactMorphStrength * m_contactMorphSign;
+    }
+
+    private bool IsLivingPulseActive()
+    {
+        if (!enableLivingPulse || pulseAmplitude <= 0.0001f)
+            return false;
+
+        return currentShadowType == ShadowType.BlackEternal || pulseOnSolidIce;
+    }
+
+    private float ComputeActiveMorphSignature()
+    {
+        float pulseTerm = IsLivingPulseActive() ? Mathf.Sin(Time.time * pulseFrequency) * pulseAmplitude : 0f;
+        return tipWidthMultiplier +
+               proximityTipFlare * m_proximityFactor * 10f +
+               shadowApexCurve * 100f +
+               m_phaseLengthMultiplier * 1000f +
+               EvaluateContactWave() * 500f +
+               pulseTerm * 250f;
+    }
+
     private void TransformProjectedPoints(Vector2[] spriteLocalPoints, Vector3[] outTargetLocalPoints, Transform targetTransform)
+    {
+        TransformProjectedCore(spriteLocalPoints, outTargetLocalPoints, null, targetTransform);
+    }
+
+    private void TransformProjectedWorldPoints(Vector2[] spriteLocalPoints, Vector2[] outWorldPoints)
+    {
+        TransformProjectedCore(spriteLocalPoints, null, outWorldPoints, null);
+    }
+
+    private void TransformProjectedCore(
+        Vector2[] spriteLocalPoints,
+        Vector3[] outTargetLocalPoints,
+        Vector2[] outWorldPoints,
+        Transform targetTransform)
     {
         Transform spriteTransform = spriteRenderer != null ? spriteRenderer.transform : transform;
         bool flipX = spriteRenderer != null && spriteRenderer.flipX;
         bool flipY = spriteRenderer != null && spriteRenderer.flipY;
 
-        Vector2 worldDir = currentShadowDir * currentLength;
-        Vector2 shadowAxis = currentShadowDir.sqrMagnitude > 0.0001f ? currentShadowDir.normalized : Vector2.down;
+        Vector2 shadowAxis = GetEffectiveShadowAxis();
+        Vector2 perpAxis = new Vector2(-shadowAxis.y, shadowAxis.x);
 
         int count = spriteLocalPoints.Length;
         if (worldScaledBuffer == null || worldScaledBuffer.Length < count)
         {
             worldScaledBuffer = new Vector2[count];
         }
+
+        Vector2 localCenter = opaqueCenter;
+        if (flipX) localCenter.x = -localCenter.x;
+        if (flipY) localCenter.y = -localCenter.y;
+        Vector2 worldCenter = spriteTransform.TransformPoint(localCenter);
 
         float minProj = float.MaxValue;
         float maxProj = float.MinValue;
@@ -1283,53 +1606,46 @@ public class SpriteShadowCaster2D : MonoBehaviour
         }
 
         float projSpan = Mathf.Max(maxProj - minProj, 0.0001f);
+        float effectiveTipWidth = Mathf.Max(0.05f, tipWidthMultiplier + (proximityTipFlare * m_proximityFactor));
+        bool pulseActive = IsLivingPulseActive();
+        float timeNow = Application.isPlaying ? Time.time : 0f;
+        float contactWave = EvaluateContactWave();
+
+        // Contact morph flares width while subtly squashing/stretching axial reach
+        float axialLength = currentLength * m_phaseLengthMultiplier * Mathf.Max(0.2f, 1f - (contactWave * 0.25f));
+        float apexPow = Mathf.Clamp(shadowApexCurve, 0.3f, 3f);
 
         for (int i = 0; i < count; i++)
         {
             Vector2 worldPt = worldScaledBuffer[i];
-            float t = Mathf.Clamp01((Vector2.Dot(worldPt, shadowAxis) - minProj) / projSpan);
-            Vector2 projectedWorld = worldPt + worldDir * t;
+            float rawT = Mathf.Clamp01((Vector2.Dot(worldPt, shadowAxis) - minProj) / projSpan);
+            float t = Mathf.Approximately(apexPow, 1f) ? rawT : Mathf.Pow(rawT, apexPow);
 
-            Vector3 localPos = targetTransform.InverseTransformPoint(projectedWorld);
-            outTargetLocalPoints[i] = new Vector3(localPos.x, localPos.y, 0f);
-        }
-    }
+            float widthScale = Mathf.Lerp(1f, effectiveTipWidth, rawT) * m_phaseWidthMultiplier;
+            if (pulseActive)
+            {
+                widthScale += Mathf.Sin(timeNow * pulseFrequency - rawT * Mathf.PI) * pulseAmplitude * rawT;
+            }
+            if (!Mathf.Approximately(contactWave, 0f))
+            {
+                widthScale += contactWave * rawT;
+            }
+            widthScale = Mathf.Max(0.05f, widthScale);
 
-    private void TransformProjectedWorldPoints(Vector2[] spriteLocalPoints, Vector2[] outWorldPoints)
-    {
-        Transform spriteTransform = spriteRenderer != null ? spriteRenderer.transform : transform;
-        bool flipX = spriteRenderer != null && spriteRenderer.flipX;
-        bool flipY = spriteRenderer != null && spriteRenderer.flipY;
+            float lateralOffset = Vector2.Dot(worldPt - worldCenter, perpAxis);
+            Vector2 morphedPt = worldPt + perpAxis * (lateralOffset * (widthScale - 1f));
+            Vector2 projectedWorld = morphedPt + shadowAxis * (axialLength * t);
 
-        Vector2 worldDir = currentShadowDir * currentLength;
-        Vector2 shadowAxis = currentShadowDir.sqrMagnitude > 0.0001f ? currentShadowDir.normalized : Vector2.down;
+            if (outTargetLocalPoints != null && targetTransform != null)
+            {
+                Vector3 localPos = targetTransform.InverseTransformPoint(projectedWorld);
+                outTargetLocalPoints[i] = new Vector3(localPos.x, localPos.y, 0f);
+            }
 
-        int count = spriteLocalPoints.Length;
-        float minProj = float.MaxValue;
-        float maxProj = float.MinValue;
-
-        for (int i = 0; i < count; i++)
-        {
-            Vector2 pt = spriteLocalPoints[i];
-            Vector2 scaled = opaqueCenter + (pt - opaqueCenter) * shadowWidthFactor;
-            if (flipX) scaled.x = -scaled.x;
-            if (flipY) scaled.y = -scaled.y;
-
-            Vector2 worldPt = spriteTransform.TransformPoint(scaled);
-            outWorldPoints[i] = worldPt;
-
-            float proj = Vector2.Dot(worldPt, shadowAxis);
-            if (proj < minProj) minProj = proj;
-            if (proj > maxProj) maxProj = proj;
-        }
-
-        float projSpan = Mathf.Max(maxProj - minProj, 0.0001f);
-
-        for (int i = 0; i < count; i++)
-        {
-            Vector2 worldPt = outWorldPoints[i];
-            float t = Mathf.Clamp01((Vector2.Dot(worldPt, shadowAxis) - minProj) / projSpan);
-            outWorldPoints[i] = worldPt + worldDir * t;
+            if (outWorldPoints != null)
+            {
+                outWorldPoints[i] = projectedWorld;
+            }
         }
     }
 

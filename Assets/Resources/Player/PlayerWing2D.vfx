@@ -33,30 +33,6 @@ MonoBehaviour:
     - model: {fileID: 8926484042661615063}
       id: 0
       isStickyNote: 0
-    - model: {fileID: 8926484042661615141}
-      id: 0
-      isStickyNote: 0
-    - model: {fileID: 8926484042661615143}
-      id: 0
-      isStickyNote: 0
-    - model: {fileID: 8926484042661615146}
-      id: 0
-      isStickyNote: 0
-    - model: {fileID: 8926484042661615069}
-      id: 0
-      isStickyNote: 0
-    - model: {fileID: 8926484042661615100}
-      id: 0
-      isStickyNote: 0
-    - model: {fileID: 8926484042661615120}
-      id: 0
-      isStickyNote: 0
-    - model: {fileID: 8926484042661615130}
-      id: 0
-      isStickyNote: 0
-    - model: {fileID: 8926484042661615134}
-      id: 0
-      isStickyNote: 0
   stickyNoteInfos: []
   categories: []
   uiBounds:
@@ -75,7 +51,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7d4c867f6b72b714dbb5fd1780afe208, type: 3}
-  m_Name: PlayerTail2D
+  m_Name: PlayerWing2D
   m_EditorClassIdentifier: 
   m_UIIgnoredErrors: []
   m_Parent: {fileID: 0}
@@ -101,7 +77,7 @@ VisualEffectResource:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: PlayerTail2D
+  m_Name: PlayerWing2D
   m_Graph: {fileID: 114350483966674976}
   m_Infos:
     m_RendererSettings:
@@ -2457,7 +2433,7 @@ MonoBehaviour:
       m_Type:
         m_SerializableType: UnityEngine.Gradient, UnityEngine.CoreModule, Version=0.0.0.0,
           Culture=neutral, PublicKeyToken=null
-      m_SerializableObject: '{"colorKeys":[{"color":{"r":1.0,"g":1.0,"b":1.0,"a":1.0},"time":0.0},{"color":{"r":0.2992591857910156,"g":0.2992591857910156,"b":0.2992591857910156,"a":1.0},"time":0.5000076293945313},{"color":{"r":0.06801328808069229,"g":0.06801328808069229,"b":0.06801328808069229,"a":1.0},"time":1.0}],"alphaKeys":[{"alpha":0.0,"time":0.0},{"alpha":1.0,"time":0.10000763088464737},{"alpha":0.8500000238418579,"time":0.7000076174736023},{"alpha":0.0,"time":1.0}],"gradientMode":0}'
+      m_SerializableObject: '{"colorKeys":[{"color":{"r":1.0,"g":0.9725691080093384,"b":0.21698099374771119,"a":1.0},"time":0.0},{"color":{"r":0.8641509413719177,"g":0.8263238668441773,"b":0.0,"a":1.0},"time":0.5000076293945313},{"color":{"r":0.06801328808069229,"g":0.06801328808069229,"b":0.06801328808069229,"a":1.0},"time":1.0}],"alphaKeys":[{"alpha":0.0,"time":0.0},{"alpha":1.0,"time":0.10000763088464737},{"alpha":0.8500000238418579,"time":0.7000076174736023},{"alpha":0.0,"time":1.0}],"gradientMode":0}'
     m_Space: -1
   m_Property:
     name: Color

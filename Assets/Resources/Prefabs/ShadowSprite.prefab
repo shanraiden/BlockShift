@@ -105,6 +105,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpriteShadowCaster2D
   baseLightDirection: {x: 0, y: 0}
+  keepShadowOrthographic: 0
+  orthographicAxisHysteresis: 0.273
+  tipWidthMultiplier: 1
+  proximityTipFlare: 0.35
+  shadowApexCurve: 1
+  enableLivingPulse: 1
+  pulseOnSolidIce: 0
+  pulseAmplitude: 0.08
+  pulseFrequency: 2.5
+  enableContactMorph: 1
+  contactMorphStrength: 0.3
+  contactMorphDuration: 0.35
+  enablePhaseShiftMorph: 1
+  phaseShiftMorphDuration: 0.25
   alphaThreshold: 0.01
   maxPixelSampleResolution: 23
   shadowWidthFactor: 0.8
@@ -128,7 +142,7 @@ MonoBehaviour:
   shadowFloatTags:
   - Player
   shadowFloatUpwardSpeed: 0.11
-  shadowFloatSteerSpeed: 2.73
+  shadowFloatSteerSpeed: 5
   shadowFloatDamping: 4
   shadowExitReentryCooldown: 0.25
   applyExitForce: 1
